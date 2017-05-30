@@ -4,7 +4,7 @@
   "description": "Well typed tagged unions with pattern matching",
   "main": "lib/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "cross-env BABEL_ENV=jest jest --config jest.json",
     "build:cjs": "cross-env BABEL_ENV=commonjs babel src/ -d lib -s",
     "build:es": "babel src/ -d es -s",
     "build": "npm run build:cjs && npm run build:es",
@@ -13,7 +13,9 @@
   "author": "Zero Bias",
   "license": "MIT",
   "dependencies": {
-    "fantasy-land": "^3.3.0"
+    "@types/ramda": "0.0.10",
+    "fantasy-land": "^3.3.0",
+    "ramda": "^0.24.0"
   },
   "devDependencies": {
     "babel-cli": "^6.24.1",
