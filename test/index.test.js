@@ -1,45 +1,46 @@
 'use strict'
 
-import Type, { self } from '../src'
+import Type, { self, TypeMatch } from '../src'
 import { T, add } from 'ramda'
 
 
 function isNumber(n) { return typeof n === 'number' }
 
 test('returns type with constructors', () => {
-  const Point = Type({ Point: [isNumber, isNumber] })
+  const Point = Type('Point', { Point: [isNumber, isNumber] })
   expect(typeof Point.Point).toBe('function')
 })
 test('constructors create object with fields in array', () => {
-  const Point = Type({ Point: [isNumber, isNumber] })
+  const Point = Type('Point', { Point: [isNumber, isNumber] })
   const point = Point.Point(5, 10)
   expect(point[0]).toBe(5)
   expect(point[1]).toBe(10)
 })
 test('throws if field value does not pass validator', () => {
-  const Point = Type({ Point: [isNumber, isNumber] })
+  const Point = Type('Point', { Point: [isNumber, isNumber] })
   expect(() => {
     Point.Point('lol', 10)
   }).toThrow()
 })
+
 describe('primitives', () => {
   test('accepts strings with primitive constructors', () => {
-    const Name = Type({ Name: [String] })
+    const Name = Type('Name', { Name: [String] })
     const name = Name.Name('Thumper')
     expect(name[0]).toBe('Thumper')
   })
   test('throws on strings with primitive constructors', () => {
-    const Name = Type({ Name: [String] })
+    const Name = Type('Name', { Name: [String] })
     expect(() => {
       const name = Name.Name(12)
     }).toThrow()
   })
   test('accepts number with primitive constructors', () => {
-    const Age = Type({ Age: [Number] })
+    const Age = Type('Age', { Age: [Number] })
     expect(Age.Age(12)[0]).toBe(12)
   })
   test('throws on number with primitive constructors', () => {
-    const Age = Type({ Age: [Number] })
+    const Age = Type('Age', { Age: [Number] })
     expect(() => {
       Age.Age('12')
     }).toThrow()
@@ -64,9 +65,53 @@ describe('primitives', () => {
       Exists.Exists('12')
     }).toThrow()
   })
+  test('TypeMatch should work as tagged function', () => {
+    const Exists = TypeMatch`Exists`({ Exists: [Boolean] })
+    expect(Exists._name).toBe('Exists')
+  })
 })
+
+describe('pattern-matching', () => {
+  test('orthogonal constraints', () => {
+    const Text = Type({
+      English: { '@@value': String },
+      French : { '@@value': String },
+    })
+    const text = Text.English('Hi there')
+    expect(Text.canMatch).toBe(false)
+    expect(text.canMatch).toBe(false)
+
+
+    const Text2 = Type({
+      English: { '@@value': String, key: String },
+       French : { '@@value': String },
+    })
+
+    const Text3 = Type({
+      English: { '@@value': String, key: String },
+      French : { '@@value': String, key: Number },
+    })
+    const text2 = Text2.French('Hi there')
+    const text3 = Text3.French('Hi there', 0)
+
+    expect(Text2.canMatch).toBe(true)
+    expect(text2.canMatch).toBe(true)
+
+    expect(Text3.canMatch).toBe(true)
+    expect(text3.canMatch).toBe(true)
+  })
+  test('pattern cases', () => {
+    const Text = Type({
+      English: { '@@value': String, key: String },
+      French : { '@@value': String, key: Number },
+    })
+    const result = Text.match({ '@@value': 'french', key: 0 })
+    expect(result._name).toBe('French')
+  })
+})
+
 test('array of types', () => {
-  const Point = Type({ Point: [Number, Number] })
+  const Point = Type('Point', { Point: [Number, Number] })
   const { Shape } = Type({ Shape: [Type.ListOf(Point)] })
   expect(() => {
     Shape([1, Point.Point(1, 2), 3])
@@ -81,7 +126,7 @@ test('array of types', () => {
   }, /wrong value/)
 })
 test('nest types', () => {
-  const Point = Type({ Point: [isNumber, isNumber] })
+  const Point = Type('Point', { Point: [isNumber, isNumber] })
   const Shape = Type({ Circle   : [Number, Point],
                        Rectangle: [Point, Point] })
   const square = Shape.Rectangle(Point.Point(1, 1), Point.Point(4, 4))
@@ -93,29 +138,31 @@ test('throws if field value is not of correct type', () => {
     Shape.Rectangle(1, Length.Length(12))
   }).toThrow()
 })
+
 describe('records', () => {
   test('can create types from object descriptions', () => {
-    const Point = Type({ Point: { x: Number, y: Number } })
+    const Point = Type('Point', { Point: { x: Number, y: Number } })
   })
   test('can create values from objects', () => {
-    const Point = Type({ Point: { x: Number, y: Number } })
+    const Point = Type('Point', { Point: { x: Number, y: Number } })
     const p = Point.PointOf({ x: 1, y: 2 })
     expect(p.x).toBe(1)
     expect(p.y).toBe(2)
   })
   test('can create values from arguments', () => {
-    const Point = Type({ Point: { x: Number, y: Number } })
+    const Point = Type('Point', { Point: { x: Number, y: Number } })
     const p = Point.Point(1, 2)
     expect(p.x).toBe(1)
     expect(p.y).toBe(2)
   })
   test('does not add numerical properties to records', () => {
-    const Point = Type({ Point: { x: Number, y: Number } })
+    const Point = Type('Point', { Point: { x: Number, y: Number } })
     const p = Point.Point(1, 2)
     expect(p[0]).toBe(undefined)
     expect(p[1]).toBe(undefined)
   })
 })
+
 describe('type methods', () => {
   test('can add instance methods', () => {
     const Maybe = Type({ Just: [T], Nothing: [] })
@@ -133,6 +180,7 @@ describe('type methods', () => {
     expect(alsoNothing._name).toBe('Nothing')
   })
 })
+
 describe('case', () => {
   const Action = Type({
     Translate: [isNumber, isNumber],
@@ -187,7 +235,10 @@ describe('case', () => {
     }, Action.Rotate(90))
     Type.check = true
   })
+
+  Type.check = true
 })
+
 describe('caseOn', () => {
   const Modification = Type({ Append: [Number], Remove: [Number], Slice: [Number, Number], Sort: [] })
   const update = Modification.caseOn({
@@ -213,6 +264,7 @@ describe('caseOn', () => {
     expect(append3([5, 4])).toEqual([5, 4, 3])
   })
 })
+
 describe('caseOn _', () => {
   const Action = Type({ Jump: [], Move: [Number] })
   const Context = { x: 1, y: 2 }
@@ -224,13 +276,14 @@ describe('caseOn _', () => {
     expect(update(Action.Move(5), Context)).toEqual(Context)
   })
 })
-describe('case instance method', () => {
+test('case instance method', () => {
   const Maybe = Type({ Just: [Number], Nothing: [] })
   expect(Maybe.Just(1).case({
     Nothing: function() { return 'oops' },
     Just   : function(n) { return n + 2 }
   })).toBe(3)
 })
+
 describe('recursive data types', () => {
   describe('with self symbol', () => {
     const List = Type({ Nil: [], Cons: [T, self] })
@@ -265,11 +318,11 @@ describe('recursive data types', () => {
       expect(toString(list)).toBe('1 : 2 : 3 : Nil')
     })
   })
-
 })
+
 describe('iterator support', () => {
   test('is can be destructured like array', () => {
-    const { Point, PointOf } = Type({ Point: { x: Number, y: Number, z: Number } })
+    const { Point, PointOf } = Type('Point', { Point: { x: Number, y: Number, z: Number } })
     const p1 = PointOf({ x: 1, y: 2, z: 3 })
     const p2 = Point(1, 2, 3)
     const [x, y, z] = p1

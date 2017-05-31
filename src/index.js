@@ -1,6 +1,12 @@
 //@flow
+'use strict'
 
-import { curryN, compose, contains } from 'ramda'
+import { curryN, compose } from 'ramda'
+
+import type { PropDescriptor, Descriptor } from './index.h'
+import config from './config'
+import typeInstance from './type-instance'
+
 const isString = function(s) { return typeof s === 'string' }
 const isNumber = function(n) { return typeof n === 'number' }
 const isBoolean = function(b) { return typeof b === 'boolean' }
@@ -26,10 +32,14 @@ const mapConstrToFn = function(group, constr) {
 
 const numToStr = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth']
 
-const validate = function(group, validators, name: string, args) {
+function validate(group, validators, name: string, args) {
   let validator, v, i
   if (args.length > validators.length) {
     throw new TypeError(`too many arguments supplied to constructor ${
+      name} (expected ${validators.length} but got ${args.length})`)
+  }
+  if (args.length < validators.length) {
+    throw new TypeError(`Lack of arguments supplied to constructor ${
       name} (expected ${validators.length} but got ${args.length})`)
   }
   for (i = 0; i < args.length; ++i) {
@@ -46,85 +56,111 @@ const validate = function(group, validators, name: string, args) {
   }
 }
 
-function valueToArray(value) {
-  const arr = []
-  for (let i = 0; i < value._keys.length; ++i) {
-    arr.push(value[value._keys[i]])
-  }
-  return arr
-}
 
-function extractValues(keys: string[], obj) {
-  const arr = []
+function extractValues<T>(keys: string[], obj: Descriptor<T>): T[] {
+  const ln = keys.length
+  const arr = Array(ln)
   for (let i = 0; i < keys.length; ++i) arr[i] = obj[keys[i]]
   return arr
 }
 
-function constructor(group, name: string, fields) {
-  let validators: mixed[]
-  const keys = Object.keys(fields)
-  if (Array.isArray(fields)) {
-    validators = fields
-  } else {
-    validators = extractValues(keys, fields)
-  }
-  function construct(...args: mixed[]) {
-    const val = Object.create(group.prototype)
-    Object.defineProperty(val, '_keys', {
+const fillCounter = (_: any, index: number) => index.toString(10)
+const makeNumericArray = (ln: number) =>
+  Array(ln|0)
+    .fill(0)
+    .map(fillCounter)
+
+
+
+function TypeValue(args: Array<*>, keys: string[], name: string, typeName: string, parent: *) {
+  const props: Array<[string, PropDescriptor<>]> = []
+  props.push(
+    ['_keys', {
       enumerable  : false,
       configurable: false,
       get() {
         return keys
       }
-    })
-    Object.defineProperty(val, '_name', {
+    }],
+    ['_name', {
       enumerable  : true,
       configurable: false,
+      value       : name,
+    }],
+    ['type', {
+      enumerable  : true,
+      configurable: false,
+      value       : typeName,
+    }],
+  )
+  // defineProperty(this, '_keys', {
+  //   enumerable  : false,
+  //   configurable: false,
+  //   get() {
+  //     return keys
+  //   }
+  // })
+  // this._name = name
+  // this.type = typeName
+  for (let i = 0; i < args.length; ++i) {
+    // defineProperty(this, keys[i], {
+    //   enumerable  : true,
+    //   configurable: false,
+    //   value       : args[i],
+    //   // get() {
+    //   //   return name
+    //   // }
+    // })
+    props.push([keys[i], {
+      enumerable  : true,
+      configurable: false,
+      value       : args[i],
       // get() {
       //   return name
       // }
-      value: name
-    })
+    }])
+  }
+  const objType = props.reduce((acc, [key, val]) => (acc[key] = val, acc), ({}: { [string]: * }))
+  return Object.defineProperties(Object.create(parent), objType)
+  // defineProperty(val, 'type', {
+  //   enumerable  : true,
+  //   configurable: false,
+  //   get() {
+  //     return typeName
+  //   }
+  //   // value: name
+  // })
+}
+
+function constructor<T>(typeName: string, group: *, name: string, fields: T[] | Descriptor<T>) {
+  let validators: T[], keys: string[]
+  if (Array.isArray(fields)) {
+    validators = fields
+    keys = makeNumericArray(fields.length | 0)
+  } else {
+    keys = Object.keys(fields)
+    validators = extractValues(keys, fields)
+  }
+
+  function construct(...args: mixed[]) {
+    const val = TypeValue(args, keys, name, typeName, group.prototype)
     if (Type.check === true) {
       validate(group, validators, name, args)
     }
-    for (let i = 0; i < args.length; ++i) {
-      val[keys[i]] = args[i]
-    }
+    // for (let i = 0; i < args.length; ++i) {
+    //   val[keys[i]] = args[i]
+    // }
     return val
   }
-  group[name] = keys.length === 0 ? construct() : curryN(keys.length, construct)
+  group[name] = keys.length === 0
+    ? construct()
+    : curryN(keys.length, construct)
   if (keys !== undefined) {
     group[`${name}Of`] = function(obj) {
       return construct(...extractValues(keys, obj))
     }
   }
 }
-
-function rawCase(type, cases, value, arg) {
-  let wildcard = false
-  let handler = cases[value._name]
-  if (handler === undefined) {
-    handler = cases['_']
-    wildcard = true
-  }
-  if (Type.check === true) {
-    if (!type.prototype.isPrototypeOf(value)) {
-      throw new TypeError('wrong type passed to case')
-    } else if (handler === undefined) {
-      throw new Error('non-exhaustive patterns in a function')
-    }
-  }
-  if (handler !== undefined) {
-    const args = wildcard === true ? [arg]
-             : arg !== undefined ? valueToArray(value).concat([arg])
-             : valueToArray(value)
-    return handler(...args)
-  }
-}
-
-const typeCase = curryN(3, rawCase)
-const caseOn = curryN(4, rawCase)
 
 function createIterator() {
   return {
@@ -139,27 +175,16 @@ function createIterator() {
   }
 }
 
-function getValues<+T>(obj: T[] | {[key: string]: T}): T[] {
-  return Array.isArray(obj)
-    ? obj
-    : Object.values(obj)
-}
-function isOrthogonal<+T>(desc: {[key: string]: T}) {
-  const types = []
-  for (const signature of Object.values(desc)) {
-    const sigTypes = getValues(signature)
-    if (contains(sigTypes, types))
-      return false
-    else
-      types.push(sigTypes)
+
+function Type<-T>(typeData: string | Descriptor<T>, descData: Descriptor<T>) {
+  let typeName: string, desc: Descriptor<T>
+  if (typeof typeData === 'string') {
+    typeName = typeData
+    desc = (descData: Descriptor<T>)
+  } else {
+    typeName = 'Type'
+    desc = (typeData: Descriptor<T>)
   }
-  return true
-}
-function Type(desc) {
-  let key, res, obj = {}
-  obj.case = typeCase(obj)
-  obj.caseOn = caseOn(obj)
-  obj.canMatch = isOrthogonal(desc)
   const keyList = Object.keys(desc).sort(
     (a, b) => {
       const al = desc[a].length
@@ -168,22 +193,38 @@ function Type(desc) {
       if (al > bl) return 1
       return -1
     })
-  keyList
-  obj.match = obj.canMatch
-    ? (newVal) => {
-      let i = 0
-      do {
-        try {
-          const result = obj[`${keyList[i]}Of`](newVal)
-          return result
-        } catch (err) {}
-        i+=1
-      } while (i < keyList.length)
-      throw new TypeError('Unmatched pattern')
-    }
-    : () => { throw new Error('Can not match on this type') }
 
-  obj.prototype = {}
+  const obj = typeInstance(keyList, desc)
+  obj
+
+
+  keyList
+
+
+  const typeProto = {
+    canMatch         : obj.canMatch,
+    [Symbol.iterator]: createIterator,
+    case(cases) {
+      return obj.case(cases, this)
+    },
+    caseOn(cases) {
+      return obj.caseOn(cases, this)
+    },
+    //$FlowIssue
+    get [Symbol.toPrimitive](){ return this.toString() },
+    /*toString() {
+      const objKeys = this._keys
+      console.log(...objKeys)
+      let keyVals = []
+      if (objKeys.length === 0) keyVals.push('{ - }')
+      else if (objKeys.length === 1) keyVals.push(objKeys[0])
+      else keyVals = objKeys.map(key => `${key}:${this[key]}`)
+      return `Union { ${keyVals.join(', ')} }`
+    }*/
+  }
+
+  obj.prototype = typeProto
+  /*obj.prototype.canMatch = obj.canMatch
   obj.prototype[Symbol ? Symbol.iterator : '@@iterator'] = createIterator
   obj.prototype.case = function(cases) { return obj.case(cases, this) }
   obj.prototype.caseOn = function(cases) { return obj.caseOn(cases, this) }
@@ -197,20 +238,31 @@ function Type(desc) {
     else if (objKeys.length === 1) keyVals.push(objKeys[0])
     else keyVals = objKeys.map(key => `${key}:${this[key]}`)
     return `Union { ${keyVals.join(', ')} }`
-  }
+  }*/
 
-  for (key in desc) {
-    res = constructor(obj, key, desc[key])
-  }
+  for (const key of keyList)
+    constructor(typeName, obj, key, desc[key])
+
   return obj
 }
+
+//$FlowIssue
+Object.defineProperty(Type, 'check', {
+  enumerable: true,
+  get() {
+    return config.check
+  },
+  set(check: bool) {
+    config.check = check
+  }
+})
 
 Type.check = true
 
 Type.ListOf = function(T) {
   const List = Type({ List: [Array] })
   const innerType = Type({ T: [T] }).T
-  const validate = List.case({
+  const validateList = List.case({
     List: function(array) {
       let n = 0
       try {
@@ -223,24 +275,87 @@ Type.ListOf = function(T) {
       return true
     }
   })
-  return compose(validate, List.List)
+  return compose(validateList, List.List)
+}
+
+export function TypeMatch(typeName: string[]) {
+  const name = typeName.join('')
+  return (desc: *) => {
+    const instance = Type(name, desc)
+    //$FlowIssue
+    instance.match = instance.match.bind(instance)
+    const match = instance.match
+    Object.assign(match, instance)
+    match._name = name
+    return match
+  }
 }
 
 export default Type
 
-const CombinatorPart = Type({
+const CombinatorPart = TypeMatch`CombinatorPart`({
   Ident: { '@@value': String },
   Code : { '@@value': String }
 })
 
-const Combinator = Type({
+const Combinator = TypeMatch`Combinator`({
   Full : { name: CombinatorPart, code: CombinatorPart },
   Short: { name: CombinatorPart },
 })
 
-const val = Combinator.match({
+const val = Combinator({
   name: CombinatorPart.Ident('ok'),
   code: CombinatorPart.Code('ok'),
 })
 
-val
+const issue = Type({ Foo: { a: Number, b: Number } })
+console.log(issue)
+console.log(Combinator)
+console.log(val)
+
+const randomNumber = () => Math.floor((Math.random() * 1e8)) | 0
+const randomString = () => randomNumber().toString(16)
+
+function testing() {
+  const typeA = randomString()
+  const typeB = randomString()
+  const typeName = randomString()
+  const newType = {
+    [typeA]: { a: Number, b: String },
+    [typeB]: { c: Number, d: String },
+  }
+  const NewType = TypeMatch(typeName, newType)
+  const results = Array(50)
+  for (let i = 0; i < 25; i++)
+    results[i] = NewType({ a: randomNumber(), b: randomString() })
+  for (let i = 0; i < 25; i++)
+    results[i + 25] = NewType({ c: randomNumber(), d: randomString() })
+  return results
+}
+
+// for (let i = 0; i < 100; i++) testing()
+
+const Update = Type('Update', {
+  ChatUpdate: { chat_id: String, messages: Array },
+  UserUpdate: { user_id: String, online: Boolean }
+})
+
+const SystemMessage = Type('Update', {
+  Ack     : { id: Number, data: Object },
+  LongPoll: { wait: Number }
+})
+
+const RpcMessage = TypeMatch`RpcMessage`({
+  System : { _: String, msg: SystemMessage },
+  Updates: { _: String, msg: Update },
+})
+
+/*const msg1 = RpcMessage({ _: 'ack', msg: { id: 0x1fd, data: {} } })
+const msg2 = RpcMessage({ _: 'upd', msg: { chat_id: '123', messages: [] } })
+const msg3 = RpcMessage({ _: 'poll', msg: { wait: 0 } })
+
+msg1
+
+msg2
+
+msg3*/
