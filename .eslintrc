@@ -30,7 +30,7 @@
   "rules": {
     "flowtype/no-weak-types": "off",
     "flowtype/boolean-style": [
-      2,
+      0,
       "bool"
     ],
     // "strict"               : "error",

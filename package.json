@@ -1,14 +1,16 @@
 {
   "name": "mezzanine",
-  "version": "0.0.2",
-  "description": "Well typed tagged unions with pattern matching",
+  "version": "0.0.3",
+  "description": "Tagged unions with pattern matching",
   "main": "lib/index.js",
+  "module": "es/index.js",
   "scripts": {
     "test": "cross-env BABEL_ENV=jest jest --config jest.json",
     "build:cjs": "cross-env BABEL_ENV=commonjs babel src/ -d lib -s",
     "build:es": "babel src/ -d es -s",
     "build": "npm run build:cjs && npm run build:es",
-    "watch": "npm run build:cjs -- --watch"
+    "watch": "npm run build:cjs -- --watch",
+    "prepublish": "npm run build"
   },
   "author": "Zero Bias",
   "license": "MIT",
@@ -38,5 +40,10 @@
     "babel": {
       "env": "commonjs"
     }
-  }
+  },
+  "files": [
+    "src",
+    "lib",
+    "es"
+  ]
 }
