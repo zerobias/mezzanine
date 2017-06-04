@@ -218,8 +218,34 @@ declare module 'ramda' {
   declare export function trim(a: string): string;
 
   // *Type
-  declare export function is<T>(t: T, ...rest: Array<void>): (v: any) => boolean;
-  declare export function is<T>(t: T, v: any): boolean;
+  // declare export function is<T>(t: T, ...rest: Array<void>): (v: any) => boolean;
+  // declare export function is<T>(t: T, v: any): boolean;
+  declare export function is(t: typeof Number, v: Number): true
+  declare export function is(t: typeof String, v: String): true
+  declare export function is(t: typeof Boolean, v: Boolean): true
+  declare export function is(t: typeof Object, v: Object): true
+  declare export function is(t: typeof Array, v: Array): true
+  declare export function is(t: typeof Function, v: Function): true
+  declare export function is(t: typeof Number, v: $Diff<mixed, Number>): false
+  declare export function is(t: typeof String, v: $Diff<mixed, String>): false
+  declare export function is(t: typeof Boolean, v: $Diff<mixed, Boolean>): false
+  declare export function is(t: typeof Object, v: $Diff<mixed, Object>): false
+  declare export function is(t: typeof Array, v: $Diff<mixed, Array>): false
+  declare export function is(t: typeof Function, v: $Diff<mixed, Function>): false
+  declare export function is(t: typeof Number): (v: Number) => true
+  declare export function is(t: typeof String): (v: String) => true
+  declare export function is(t: typeof Boolean): (v: Boolean) => true
+  declare export function is(t: typeof Object): (v: Object) => true
+  declare export function is(t: typeof Array): (v: Array) => true
+  declare export function is(t: typeof Function): (v: Function) => true
+  declare export function is(t: typeof Number): (v: $Diff<mixed, Number>) => false
+  declare export function is(t: typeof String): (v: $Diff<mixed, String>) => false
+  declare export function is(t: typeof Boolean): (v: $Diff<mixed, Boolean>) => false
+  declare export function is(t: typeof Object): (v: $Diff<mixed, Object>) => false
+  declare export function is(t: typeof Array): (v: $Diff<mixed, Array>) => false
+  declare export function is(t: typeof Function): (v: $Diff<mixed, Function>) => false
+
+
   declare var propIs: CurriedFunction3<any,string,Object,boolean>;
   declare export function type(x: ?any): string;
   declare export function isArrayLike(x: any): boolean;
@@ -404,7 +430,7 @@ declare module 'ramda' {
   declare export function xprod<T,S>(xs: Array<T>, ...rest: Array<void>): (ys: Array<S>) => Array<[T,S]>
 
   declare export function zip<T,S>(xs: Array<T>, ys: Array<S>): Array<[T,S]>
-  declare export function zip<T,S>(xs: Array<T>, ...rest: Array<void>): (ys: Array<S>) => Array<[T,S]>
+  declare export function zip<T,S>(xs: Array<T>): (ys: Array<S>) => Array<[T,S]>
 
   declare export function zipObj<T:string,S>(xs: Array<T>, ys: Array<S>): {[key:T]:S}
   declare export function zipObj<T:string,S>(xs: Array<T>, ...rest: Array<void>): (ys: Array<S>) => {[key:T]:S}

@@ -1,5 +1,5 @@
 'use strict'
-const { default: verify, typeSign, Shape } = require('../src/verify')
+import verify, { Shape } from '../src/verify'
 
 // {
 //   Ack     : { id: Number, data: Object },
@@ -19,6 +19,15 @@ describe('validate native type', () => {
     expect(verify(type, dataInvalid2)).toBe(false)
     expect(verify(type, dataInvalid3)).toBe(false)
   })
+  test('edge case', () => {
+    const type = {}
+    const dataValid = {}
+    const dataInvalid2 = function() {}
+    const dataInvalid3 = true
+    expect(verify(type, dataValid)).toBe(true)
+    expect(verify(type, dataInvalid2)).toBe(false)
+    expect(verify(type, dataInvalid3)).toBe(false)
+  })
   test('single inner type', () => {
     const type = { wait: Number }
     const dataValid = { wait: 0 }
@@ -26,9 +35,9 @@ describe('validate native type', () => {
     const dataInvalid2 = { wait: '0' }
     const dataInvalid3 = {}
     expect(verify(type, dataValid)).toBe(true)
-    // expect(verify(type, dataInvalid1)).toBe(false)
-    // expect(verify(type, dataInvalid2)).toBe(false)
-    // expect(verify(type, dataInvalid3)).toBe(false)
+    expect(verify(type, dataInvalid1)).toBe(false)
+    expect(verify(type, dataInvalid2)).toBe(false)
+    expect(verify(type, dataInvalid3)).toBe(false)
   })
 
   test('validate object with several fields', () => {
@@ -51,11 +60,9 @@ describe('validate native type', () => {
 })
 
 describe('validate function type', () => {
-  const avoid = { not: 'allowed' }
-  const rule = (property, typeKey, data) =>
+  const rule = (property, typeKey) =>
     property !== 'reject' &&
-    typeKey !== 'fail' &&
-    data[property] !== avoid
+    typeKey !== 'fail'
 
   test('function as inner type', () => {
 
@@ -63,38 +70,40 @@ describe('validate function type', () => {
 
     const dataValid1 = { field: { key: 'prop' }, prop: '' }
     const dataValid2 = { field: {} }
-    const dataValid3 = {}
     const dataInvalid1 = { field: 'reject' }
-    const dataInvalid2 = { field: 'ref', ref: avoid }
 
     expect(verify(type, dataValid1)).toBe(true)
     expect(verify(type, dataValid2)).toBe(true)
-    expect(verify(type, dataValid3)).toBe(true)
     expect(verify(type, dataInvalid1)).toBe(false)
-    expect(verify(type, dataInvalid2)).toBe(false)
   })
-  test.skip('function as main type', () => {
+  test('function as main type', () => {
     const type = rule
 
     const dataValid1 = { key: 'prop', prop: '' }
     const dataValid2 = {}
-    const dataInvalid1 = { key: 'reject' }
-    const dataInvalid2 = { key: 'ok', fail: true }
-    const dataInvalid3 = { key: 'ref', ref: avoid }
+    const dataInvalid1 = 'reject'
 
     expect(verify(type, dataValid1)).toBe(true)
     expect(verify(type, dataValid2)).toBe(true)
     expect(verify(type, dataInvalid1)).toBe(false)
-    expect(verify(type, dataInvalid2)).toBe(false)
-    expect(verify(type, dataInvalid3)).toBe(false)
   })
+
+  test('pass nullable', () => {
+    const type = (val) => val == null
+    const valid1 = null
+    const valid2 = undefined
+    expect(verify(type, valid1)).toBe(true)
+    expect(verify(type, valid2)).toBe(true)
+    expect(verify(type, )).toBe(true)
+  })
+
 })
 
-test('inner validation type', () => {
+test.skip('inner validation type', () => {
   const typeInner = Shape({ wait: Number })
   const type = Shape({ id: Number, child: typeInner })
   const resu = type.toJSON()
-  console.log(typeInner)
+  // console.log(typeInner)
   typeInner
   const iter = [...type]
   iter

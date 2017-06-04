@@ -42,7 +42,7 @@
     "prefer-template"      : "warn",
     "no-nested-ternary"    : "warn",
     "no-unneeded-ternary"  : "warn",
-    "no-underscore-dangle" : "warn",
+    "no-underscore-dangle" : "off",
     "prefer-const"         : "warn",
 
     //On test
@@ -131,7 +131,9 @@
     "operator-linebreak": ["error", "after", {
       "overrides": {
         "?": "before",
-        ":": "before"
+        ":": "before",
+        "||": "before",
+        "&&": "before"
       }
     }],
     "newline-per-chained-call": ["error", {

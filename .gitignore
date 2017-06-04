@@ -6,6 +6,8 @@
 *.*~
 *.swp
 
+*.log
+*.cfg
 lib/**
 es/**
 debug.log

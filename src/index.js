@@ -2,6 +2,7 @@
 'use strict'
 
 import { curryN, compose } from 'ramda'
+import './container'
 
 import type { PropDescriptor, Descriptor } from './index.h'
 import config from './config'
@@ -12,7 +13,7 @@ import validate, { numToStr } from './validate'
 function extractValues<T>(keys: string[], obj: Descriptor<T>): T[] {
   const ln = keys.length
   const arr = Array(ln)
-  for (let i = 0; i < keys.length; ++i) arr[i] = obj[keys[i]]
+  for (let i = 0; i < ln; ++i) arr[i] = obj[keys[i]]
   return arr
 }
 

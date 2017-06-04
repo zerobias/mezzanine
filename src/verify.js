@@ -2,19 +2,49 @@
 
 import { is } from 'ramda'
 
-export const typeSign = Symbol('type sign')
+import { typeMark } from './config'
 
-const nativeTypes = [
-  String, Number, Boolean, Object, Array, Function
+const nativeTypes: NativeType[] = [
+  String, Number, Boolean, Object, Array, Function, RegExp
 ]
+
+type NativeType =
+    typeof Number
+  | typeof String
+  | typeof Boolean
+  | typeof Object
+  | typeof Array
+  | typeof Function
+  | typeof RegExp
+
+type Pred = (input: *, dataKey: ?string) => boolean
+
+type Model = { [typeMark]: true, [key: string]: * }
+
+type Proof =
+    NativeType
+  | Pred
+  | Model
+  | { [key: string]: NativeType | Pred | Model }
+
 
 const proofCase = {
   native: (rule) => nativeTypes.includes(rule),
   func  : (rule) => typeof rule === 'function',
-  model : (rule) => !!rule[typeSign],
+  model : (rule) => !!rule[typeMark],
+  obj   : (rule) => typeof rule === 'object',
 }
 
-const selectProofCase = (rule, property, typeKey: string, data) => {
+export const isSingleProof = (proof: *): boolean =>
+    //  proofCase.model(proof)
+     proofCase.native(proof)
+  || proofCase.func(proof)
+
+export const isSingleAlike = (proof: *): boolean =>
+     typeof proof === 'object'
+  && Object.keys(proof).length === 1
+  && Object.keys(proof)[0] === 'value'
+/*const selectProofCase = (rule, property, typeKey: string, data) => {
   switch (true) {
     case proofCase.native(rule): {
       if (!is(rule, property)) return false
@@ -33,8 +63,7 @@ const selectProofCase = (rule, property, typeKey: string, data) => {
   return true
 }
 
-
-function verify(proof: ?{+[key: string | typeof typeSign]: *}, data: ?mixed): boolean {
+function verify(proof: ?{+[key: string | typeof typeMark]: *}, data: ?mixed): boolean {
   if (data == null) return false
   if (proof == null) return false
   const isModel = proofCase.model(proof)
@@ -54,9 +83,35 @@ function verify(proof: ?{+[key: string | typeof typeSign]: *}, data: ?mixed): bo
     }
   }
   return true
+}*/
+
+function validate(proof: Proof, data: mixed, dataKey: ?string) {
+  proof /*?*/
+  data /*?*/
+
+  if (proofCase.native(proof)) return is(proof, data)
+  if (proofCase.model(proof)) return proof.is(data)
+  if (proofCase.func(proof)) return proof(data, dataKey)
+  if (proof == null) return false
+  if (data == null) return false
+  // typeof proof/*?*/
+  if (proofCase.obj(proof) && (typeof data === 'object' || data[typeMark])) {
+    const typeKeys = Object.keys(proof)
+    if (typeKeys.length === 0) return true
+    for (const typeKey of typeKeys) {
+      const rule: Proof = proof[typeKey]
+      const property = data[typeKey]
+      rule
+      property
+      const result = validate(rule, property, typeKey)
+      if (!result) return false
+    }
+    return true
+  }
+  return false
 }
 
-export default verify
+export default validate
 
 type ShapeType = {
   _keys: string[],
@@ -67,7 +122,7 @@ type ShapeType = {
 function Shape(shape: {[key: string]: *}): ShapeType {
   Object.assign(this, shape)
   //$FlowIssue
-  this[typeSign] = true
+  this[typeMark] = true
   const keys = Object.keys(shape)
 
   //$FlowIssue

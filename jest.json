@@ -2,7 +2,9 @@
   "collectCoverage": true,
   "coverageReporters": [
     "text",
-    "text-summary",
-    "html"
-  ]
+    "text-summary"
+  ],
+  "transform": {
+    "^.+\\.jsx?$": "babel-jest"
+  }
 }
