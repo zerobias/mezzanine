@@ -85,10 +85,23 @@ function verify(proof: ?{+[key: string | typeof typeMark]: *}, data: ?mixed): bo
   return true
 }*/
 
-function validate(proof: Proof, data: mixed, dataKey: ?string) {
-  proof /*?*/
-  data /*?*/
+export const validateMono =
+  (proof: Proof) =>
+    (data: mixed, dataKey: ?string) => {
+      if (proofCase.native(proof)) return is(proof, data)
+      if (proofCase.model(proof)) return proof.is(data)
+      if (proofCase.func(proof)) return proof(data, dataKey)
+      return false
+    }
 
+function validate(proof: Proof, data: mixed, dataKey: ?string) {
+  // console.log(proof, data) /*?*/
+  if (data === '=')
+    console.log(
+      proof,
+      data,
+      proof.is && proof.is({ value: data }) ||
+      typeof proof === 'function' && proof({ value: data }))
   if (proofCase.native(proof)) return is(proof, data)
   if (proofCase.model(proof)) return proof.is(data)
   if (proofCase.func(proof)) return proof(data, dataKey)

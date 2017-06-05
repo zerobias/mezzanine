@@ -5,7 +5,7 @@ import { contains } from 'ramda'
 
 import type { Descriptor } from './index.h'
 
-function getValues<T: *>(obj: T[] | Descriptor<T>): T[] {
+function getValues<+T: *>(obj: T[] | Descriptor<T>): T[] {
   return Array.isArray(obj)
     ? obj
     : Object.values(obj)
@@ -16,7 +16,6 @@ const isBuiltIn = (signature: *) => contains(signature, [String, Number, Functio
 function isOrthogonal<+T: *>(desc: Descriptor<T>) {
   const types: Array<*> = []
   const signatures = Object.values(desc)
-  signatures
   for (const signature of signatures) {
     if (contains(signature, types))
       return false

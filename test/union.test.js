@@ -1,4 +1,6 @@
 'use strict'
+import { propEq } from 'ramda'
+
 import Union from '../src/union'
 import { Type } from '../src/container'
 
@@ -109,6 +111,15 @@ describe('example: Maybe type', () => {
         expect(valid2).toBeDefined()
         expect(valid3).toBeDefined()
       })
+
+      // test('create function', () => {
+      //   const Sign = Type`Sign`((val) => ['+', '-', '*', '/', '='].includes(val))
+      //   const valid1 = Sign('=')
+      //   const valid2 = Sign({ value: '=' })
+      //   expect(valid1).toBeDefined()
+      //   expect(valid2).toBeDefined()
+      // })
+
     })
 
   })
@@ -195,8 +206,7 @@ test('complex types', () => {
   })
   const point1 = Point({ x: 1, y: 2 })
   const point2 = Point({ x: 0, y: 10 })
-  Point.is({ x: 1, y: 2 })/*?*/
-  Point.is(point1)/*?*/
+
   const shape1 = Shape({
     Start: { x: 0, y: 0 },
     End  : { x: 1, y: 0 },
@@ -212,6 +222,8 @@ test('complex types', () => {
     Center: point1,
     Radius: 1,
   })
+  expect(Point.is({ x: 1, y: 2 })).toBe(true)
+  expect(Point.is(point1)).toBe(true)
   expect(shape2).toHaveProperty('_name', 'Circle')
   expect(shape2).toHaveProperty('typeName', 'Shape')
   expect(shape2).toHaveProperty('value.Center.y', 2)
@@ -225,3 +237,28 @@ test('complex types', () => {
   console.log(shape3)
 })
 
+test('Ast example', () => {
+  const Ident = Union`Ident`({
+    Plain     : { name: String },
+    Namespaced: { prefix: String, name: String },
+  })
+  const IdentFull = Union`IdentFull`({
+    Linked  : Ident,
+    Unlinked: { value: Ident, hash: propEq(0, '#') }
+  })
+  const Sign = Type`Sign`({
+    value: (val) => ['+', '-', '*', '/', '='].includes(val)
+  })
+  const Equation = Type`Equation`({
+    Lead: Ident,
+    Sign,
+    Tail: Ident,
+  })
+
+  const result = Equation({
+    Lead: { name: 'val' },
+    Sign: { value: '=' },
+    Tail: Ident({ prefix: 'mod', name: 'ident' })
+  })
+  console.log(result)
+})

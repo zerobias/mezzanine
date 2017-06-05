@@ -1,6 +1,12 @@
 //@flow
 'use strict'
 
+/**
+ * Union of types
+ *
+ * @module mezzanine/union
+ */
+
 import { nonenumerable, readonly } from 'core-decorators'
 import { zip } from 'ramda'
 
@@ -30,6 +36,13 @@ const makeSubtype = (arg: *, key: string, typeName: string) => {
   return withName(Container(key, typeName, arg, false))
 }
 
+/**
+ * Make type union
+ * @param {string} param0
+ *
+ * @example
+ * Union`User`({ Account: String, Guest: {} })
+ */
 const Union = ([typeName]: [string]) => (desc: {[name: string]: *}) => {
   const canMatch = isOrthogonal(desc)
 
@@ -42,14 +55,15 @@ const Union = ([typeName]: [string]) => (desc: {[name: string]: *}) => {
   // @omitNew
   @callableClass(matchFabric)
   @rename(typeName)
-  class UnionType {
+  class UnionType implements $Iterable<[string, *], *, *> {
+
+
     //$FlowIssue
     [typeMark] = true
     //$FlowIssue
     static [typeMark] = true
     // static typeName: string = typeName
     // static canMatch: boolean = canMatch
-
 
     @readonly
     typeName: string = typeName
@@ -69,8 +83,12 @@ const Union = ([typeName]: [string]) => (desc: {[name: string]: *}) => {
     }
 
     is(val: *) {
-      for (const [key, pattern] of this)
-        if (pattern.is(val)) return true
+      for (const [key, pattern] of this) {
+        console.log(key, pattern, val)
+        if (pattern.is) {
+          if (pattern.is(val)) return true
+        } else if (typeof pattern === 'function' && pattern(val)) return true
+      }
       return false
     }
 
