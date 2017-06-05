@@ -8,7 +8,6 @@ import toFastProps from './to-fast-props'
 import verify, { isSingleProof } from './verify'
 import { omitNew, rename } from './decorators'
 import { containerMark, typeMark } from './config'
-import Union from '../es/union';
 
 const canHaveProps = (val: *) =>
      (typeof val === 'object' && val !== null)
