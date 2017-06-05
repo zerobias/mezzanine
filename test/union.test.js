@@ -1,8 +1,7 @@
 'use strict'
 import { propEq } from 'ramda'
 
-import Union from '../src/union'
-import { Type } from '../src/container'
+import { Union, Type } from '../src'
 
 describe('example: Maybe type', () => {
 

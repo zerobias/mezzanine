@@ -2,35 +2,13 @@
 'use strict'
 
 import { nonenumerable, readonly, enumerable } from 'core-decorators'
-import { zip, tap } from 'ramda'
+// import { zip, tap } from 'ramda'
 
 import toFastProps from './to-fast-props'
-import verify, { isSingleProof, validateMono } from './verify'
-import { callableClass, omitNew, rename } from './decorators'
+import verify, { isSingleProof } from './verify'
+import { omitNew, rename } from './decorators'
 import { containerMark, typeMark } from './config'
-
-const matchFabric =
-  (that: *) => {
-    function match(data: *) {
-      const newVal = that.isMono
-        ? transformMonoInput(data)
-        : data
-      let i = 0
-      const ln = that._keys.length
-      do {
-        try {
-          // const result = that[`${that._keys[i]}Of`](newVal)
-          const result = that[that._keys[i]](newVal)
-          if (result) return result
-        } catch (err) {}
-        i+=1
-      } while (i < ln)
-      throw new TypeError('Unmatched pattern')
-    }
-    const name = that._name || 'match'
-    rename(name)(match)
-    return match
-  }
+import Union from '../es/union';
 
 const canHaveProps = (val: *) =>
      (typeof val === 'object' && val !== null)
@@ -42,12 +20,12 @@ function transformMonoInput(input: *) {
   return { value: input }
 }
 
-const normalizeMono = (input: *) =>
-  !!input && !!input.value
-    ? input.value
-    : input
+// const normalizeMono = (input: *) =>
+//   !!input && !!input.value
+//     ? input.value
+//     : input
 
-const makeMonoType = (
+/*const makeMonoType = (
   name: string,
   typeName: string,
   desc: *
@@ -60,12 +38,12 @@ const makeMonoType = (
   @omitNew
   @rename(name)
   class Monotype {
-    //$FlowIssue
+    //$ FlowIssue
     [typeMark] = true
-    //$FlowIssue
+    //$ FlowIssue
     static [containerMark] = uniqMark
 
-    //$FlowIssue
+    //$ FlowIssue
     static [typeMark] = true
 
     @enumerable
@@ -92,14 +70,14 @@ const makeMonoType = (
       return ['value']
     }
 
-    //$FlowIssue
+    //$ FlowIssue
     * [Symbol.iterator]() {
       yield* this._keys
     }
   }
 
   return Monotype
-}
+}*/
 
 const makeContainer = (
   name: string,
@@ -110,8 +88,8 @@ const makeContainer = (
 
 
   const keys = Object.keys(desc)
-  const values = Object.values(desc)
-  const subtypes = zip(keys, values)
+  // const values = Object.values(desc)
+  // const subtypes = zip(keys, values)
   const uniqMark = Symbol(name)
 
   @toFastProps
@@ -128,6 +106,7 @@ const makeContainer = (
     static [typeMark] = true
     @enumerable
     static is(val: *) {
+      //eslint-disable-next-line
       if (!!val) {
         if (val[containerMark] === uniqMark) return true
         if (!!val.value && val.value[containerMark] === uniqMark) return true
@@ -142,6 +121,7 @@ const makeContainer = (
     [containerMark] = uniqMark
     is(val: *) {
       // if (!!val && val[containerMark] === uniqMark) return true
+      //eslint-disable-next-line
       if (!!val) {
         if (val[containerMark] === uniqMark) return true
         if (!!val.value && val.value[containerMark] === uniqMark) return true
@@ -177,6 +157,7 @@ const makeContainer = (
       const data = isMono
         ? transformMonoInput(obj)
         : obj
+      //$FlowIssue
       if (!!data && data[containerMark] === uniqMark) return data
       if (!!data && !!data.value && data.value[containerMark] === uniqMark) return data
 
@@ -198,6 +179,14 @@ const makeContainer = (
   return Container
 }
 
+/**
+ * Make single type
+ *
+ * @param {string} typeName
+ *
+ * @example
+ * Type`User`({ id: Number, name: String })
+ */
 export const Type = ([typeName]: [string]) => (desc: {[name: string]: *}) => {
   const isMono = isSingleProof(desc)
   return makeContainer(typeName, typeName, desc, isMono)

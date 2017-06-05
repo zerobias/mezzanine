@@ -38,7 +38,7 @@ const makeSubtype = (arg: *, key: string, typeName: string) => {
 
 /**
  * Make type union
- * @param {string} param0
+ * @param {string} typeName
  *
  * @example
  * Union`User`({ Account: String, Guest: {} })
@@ -51,11 +51,11 @@ const Union = ([typeName]: [string]) => (desc: {[name: string]: *}) => {
   const subtypes = zip(keys, values)
   const subtypesMap = {}
   for (const [key, arg] of subtypes)
-        subtypesMap[key] = makeSubtype(arg, key, typeName)
+    subtypesMap[key] = makeSubtype(arg, key, typeName)
   // @omitNew
   @callableClass(matchFabric)
   @rename(typeName)
-  class UnionType implements $Iterable<[string, *], *, *> {
+  class UnionType implements Iterable<[string, *]> {
 
 
     //$FlowIssue
@@ -99,7 +99,7 @@ const Union = ([typeName]: [string]) => (desc: {[name: string]: *}) => {
     }
   }
   Object.assign(UnionType, subtypesMap)
-  return new UnionType()
+  return new UnionType
 }
 
 export default Union
