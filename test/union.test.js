@@ -13,11 +13,19 @@ describe('example: Maybe type', () => {
     test('Just create', () => {
       const just1 = Maybe.Just({ value: { ok: 'ok' } })
       const just2 = Maybe.Just({ value: {} })
-      expect(just1).toHaveProperty('_name', 'Just')
+
+      expect(just1).toHaveProperty('type', 'Just')
       expect(just1.typeName).toBe('Maybe')
-      expect(just1).toHaveProperty('value', { ok: 'ok' })
-      expect(just2).toHaveProperty('_name', 'Just')
+      expect(just1).toHaveProperty('value.ok', 'ok')
+      expect(just2).toHaveProperty('type', 'Just')
       expect(just2).toHaveProperty('value', { })
+
+      expect(() => {
+        /** Because inner shape is inferred from model */
+        const just1a = Maybe.Just({ ok: 'ok' })
+        expect(just1a).toHaveProperty('type', 'Just')
+        expect(just1a).toHaveProperty('value.ok', 'ok')
+      }).not.toThrow()
     })
 
     test('Nothing create', () => {
@@ -31,8 +39,16 @@ describe('example: Maybe type', () => {
         /** Because Nothing type *is Object*, just empty */
         const nothing3 = Maybe.Nothing()
       }).toThrow()
-      expect(nothing1).toHaveProperty('_name', 'Nothing')
+      expect(nothing1).toHaveProperty('type', 'Nothing')
       expect(nothing1.typeName).toBe('Maybe')
+
+      // expect(() => {
+      //   /** Because inner shape is inferred from model */
+      //   const just2a = Maybe.Nothing({ })
+      //   expect(just2a).toHaveProperty('type', 'Nothing')
+      //   console.log(just2a)
+      //   expect(just2a).toHaveProperty('value', { })
+      // }).not.toThrow()
     })
   })
   describe('no-inner constructors', () => {
@@ -42,13 +58,13 @@ describe('example: Maybe type', () => {
     test('Just create', () => {
       const just1 = Maybe.Just({ ok: 'ok' })
       const just2 = Maybe.Just({ })
-      expect(just1).toHaveProperty('_name', 'Just')
+      expect(just1).toHaveProperty('type', 'Just')
       expect(just1).toHaveProperty('typeName', 'Maybe')
       console.log(just1)
       console.log(Maybe)
       console.log(Maybe.Nothing)
       expect(just1).toHaveProperty('value', { ok: 'ok' })
-      expect(just2).toHaveProperty('_name', 'Just')
+      expect(just2).toHaveProperty('type', 'Just')
       expect(just2).toHaveProperty('value', { })
     })
 
@@ -57,10 +73,10 @@ describe('example: Maybe type', () => {
       const nothing2 = Maybe.Nothing(null)
       const nothing3 = Maybe.Nothing()
 
-      // expect(nothing1).toHaveProperty('_name', 'Nothing')
+      // expect(nothing1).toHaveProperty('type', 'Nothing')
       // expect(nothing1.typeName).toBe('Maybe')
-      expect(nothing2).toHaveProperty('_name', 'Nothing')
-      expect(nothing3).toHaveProperty('_name', 'Nothing')
+      expect(nothing2).toHaveProperty('type', 'Nothing')
+      expect(nothing3).toHaveProperty('type', 'Nothing')
     })
   })
 
@@ -138,8 +154,8 @@ describe('example: Maybe type', () => {
         expect(valid1).toHaveProperty('value', 'ok')
         expect(valid2).toHaveProperty('value', {})
         expect(valid1).toHaveProperty('typeName', 'Nullable')
-        expect(valid1).toHaveProperty('_name', 'Valid')
-        expect(valid2).toHaveProperty('_name', 'Valid')
+        expect(valid1).toHaveProperty('type', 'Valid')
+        expect(valid2).toHaveProperty('type', 'Valid')
       })
       test('create Empty', () => {
         const valid1 = Nullable({ value: null })
@@ -147,8 +163,8 @@ describe('example: Maybe type', () => {
         expect(valid1).toBeDefined()
         expect(valid2).toBeDefined()
         expect(valid1).toHaveProperty('typeName', 'Nullable')
-        expect(valid1).toHaveProperty('_name', 'Null')
-        expect(valid2).toHaveProperty('_name', 'Null')
+        expect(valid1).toHaveProperty('type', 'Null')
+        expect(valid2).toHaveProperty('type', 'Null')
       })
     })
 
@@ -177,9 +193,9 @@ describe('example: Maybe type', () => {
         expect(valid1).toBeDefined()
         expect(valid2).toBeDefined()
         expect(valid3).toBeDefined()
-        expect(valid1).toHaveProperty('_name', 'Empty')
-        expect(valid2).toHaveProperty('_name', 'Empty')
-        expect(valid3).toHaveProperty('_name', 'Empty')
+        expect(valid1).toHaveProperty('type', 'Empty')
+        expect(valid2).toHaveProperty('type', 'Empty')
+        expect(valid3).toHaveProperty('type', 'Empty')
       })
     })
   })
@@ -210,7 +226,7 @@ test('complex types', () => {
     Start: { x: 0, y: 0 },
     End  : { x: 1, y: 0 },
   })
-  expect(shape1).toHaveProperty('_name', 'Line')
+  expect(shape1).toHaveProperty('type', 'Line')
   expect(shape1).toHaveProperty('typeName', 'Shape')
   expect(shape1).toHaveProperty('value.End.x', 1)
   const circle = Circle({
@@ -223,14 +239,14 @@ test('complex types', () => {
   })
   expect(Point.is({ x: 1, y: 2 })).toBe(true)
   expect(Point.is(point1)).toBe(true)
-  expect(shape2).toHaveProperty('_name', 'Circle')
+  expect(shape2).toHaveProperty('type', 'Circle')
   expect(shape2).toHaveProperty('typeName', 'Shape')
   expect(shape2).toHaveProperty('value.Center.y', 2)
   const shape3 = Shape({
     Center: { x: 1, y: 2 },
     Radius: 1,
   })
-  expect(shape3).toHaveProperty('_name', 'Circle')
+  expect(shape3).toHaveProperty('type', 'Circle')
   expect(shape3).toHaveProperty('typeName', 'Shape')
   expect(shape3).toHaveProperty('value.Center.y', 2)
   console.log(shape3)
@@ -261,3 +277,4 @@ test('Ast example', () => {
   })
   console.log(result)
 })
+

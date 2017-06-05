@@ -2,11 +2,11 @@
 'use strict'
 
 import { nonenumerable, readonly, enumerable } from 'core-decorators'
-// import { zip, tap } from 'ramda'
+import { map, is, when, equals } from 'ramda'
 
 import toFastProps from './to-fast-props'
 import verify, { isSingleProof } from './verify'
-import { omitNew, rename } from './decorators'
+import { omitNew, rename, methodTag } from './decorators'
 import { containerMark, typeMark } from './config'
 
 const canHaveProps = (val: *) =>
@@ -65,26 +65,32 @@ function transformMonoInput(input: *) {
       this.value = val
     }
 
-    static get _keys(): string[] {
+    static get keys(): string[] {
       return ['value']
     }
 
     //$ FlowIssue
     * [Symbol.iterator]() {
-      yield* this._keys
+      yield* this.keys
     }
   }
 
   return Monotype
 }*/
 
+//$FlowIssue
+const makeStringDesc = when(
+  is(String),
+  equals
+)
+
 const makeContainer = (
   name: string,
   typeName: string,
-  desc: *,
+  descriptor: *,
   isMono: boolean
 ) => {
-
+  const desc = map(makeStringDesc, descriptor)
 
   const keys = Object.keys(desc)
   // const values = Object.values(desc)
@@ -95,7 +101,11 @@ const makeContainer = (
   @omitNew
   // @callableClass(matchFabric)
   @rename(name)
-  class Container {
+  class Type {
+    @nonenumerable
+    static ಠ_ಠ = true
+    @nonenumerable
+    ಠ_ಠ = true;
     //$FlowIssue
     [typeMark] = true
     //$FlowIssue
@@ -104,6 +114,7 @@ const makeContainer = (
     //$FlowIssue
     static [typeMark] = true
     @enumerable
+    @methodTag`is${name}`
     static is(val: *) {
       //eslint-disable-next-line
       if (!!val) {
@@ -118,6 +129,8 @@ const makeContainer = (
     }
     //$FlowIssue
     [containerMark] = uniqMark
+
+    @methodTag`is${name}`
     is(val: *) {
       // if (!!val && val[containerMark] === uniqMark) return true
       //eslint-disable-next-line
@@ -131,51 +144,63 @@ const makeContainer = (
       return verify(desc, data)
     }
 
+    //$FlowIssue
+    * [Symbol.iterator]() {
+      yield* keys //TODO Replace with more useful values
+    }
+
     @readonly
-    _name: string = name
-    static _name: string = name
+    type: string = name
+    @readonly
+    static type: string = name
 
     @readonly
     typeName: string = typeName
 
     // @readonly
     @nonenumerable
-    get _keys(): string[] {
+    get keys(): string[] {
       return keys
     }
 
     @nonenumerable
+    static keys: string[] = keys
+
+    @nonenumerable
     isMono: boolean = isMono
-    // @readonly
-    // @nonenumerable
-    static get _keys(): string[] {
-      return keys
-    }
+    @nonenumerable
+    static isMono: boolean = isMono
 
     constructor(obj: *) {
       const data = isMono
         ? transformMonoInput(obj)
         : obj
+      isMono && console.log('isMono', obj, data)
       //$FlowIssue
       if (!!data && data[containerMark] === uniqMark) return data
       if (!!data && !!data.value && data.value[containerMark] === uniqMark) return data
 
-      if (!Container.is(data) && !Container.is(obj))  {
-        console.log(Container, obj, desc)
-        console.log(Container.is(obj), obj)
+      if (!Type.is(data) && !Type.is(obj))  {
+        console.log(Type, obj, desc)
+        console.log(Type.is(obj), obj)
         throw new TypeError(`Unsafe pattern mismatch`)
       }
-      for (const key of keys)
+      for (const key of keys) {
+        const rule = desc[key]
+        const property = data[key]
         //$FlowIssue
-        this[key] = data[key]
+        this[key] = rule && rule.ಠ_ಠ
+          ? rule(property)
+          : property
+      }
       toFastProps(this)
     }
   }
   // for (const [key, arg] of subtypes)
   //   //$ FlowIssue
-  //   Container[key] = arg
+  //   Type[key] = arg
 
-  return Container
+  return Type
 }
 
 /**
@@ -186,9 +211,11 @@ const makeContainer = (
  * @example
  * Type`User`({ id: Number, name: String })
  */
-export const Type = ([typeName]: [string]) => (desc: {[name: string]: *}) => {
-  const isMono = isSingleProof(desc)
-  return makeContainer(typeName, typeName, desc, isMono)
+export function Type([typeName]: [string]) {
+  return (desc: {[name: string]: *}) => {
+    const isMono = isSingleProof(desc)
+    return makeContainer(typeName, typeName, desc, isMono)
+  }
 }
 
 export default makeContainer

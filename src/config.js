@@ -5,7 +5,7 @@ const config = {
   check: true
 }
 
-export const containerMark = Symbol('container')
-export const typeMark = Symbol('union type')
+export const containerMark = Symbol('single type')
+export const typeMark = Symbol('type mark')
 
 export default config

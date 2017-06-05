@@ -11,7 +11,7 @@ import { nonenumerable, readonly } from 'core-decorators'
 import { zip } from 'ramda'
 
 import verify, { isSingleProof, isSingleAlike } from './verify'
-import Container from './container'
+import Type from './type'
 import isOrthogonal from './ortho'
 import { callableClass, omitNew, rename } from './decorators'
 import { containerMark, typeMark } from './config'
@@ -28,12 +28,12 @@ const matchFabric =
 const makeSubtype = (arg: *, key: string, typeName: string) => {
   const withName = rename(key)
   if (isSingleProof(arg))
-    return withName(Container(key, typeName, { value: arg }, true))
+    return withName(Type(key, typeName, { value: arg }, true))
   if (isSingleAlike(arg))
-    return withName(Container(key, typeName, arg, true))
+    return withName(Type(key, typeName, arg, true))
   if (typeof arg !== 'object' || arg === null) throw new TypeError(`Wrong arg type, expect object got ${typeof arg}`)
 
-  return withName(Container(key, typeName, arg, false))
+  return withName(Type(key, typeName, arg, false))
 }
 
 /**
@@ -55,15 +55,16 @@ const Union = ([typeName]: [string]) => (desc: {[name: string]: *}) => {
   // @omitNew
   @callableClass(matchFabric)
   @rename(typeName)
-  class UnionType implements Iterable<[string, *]> {
-
-
+  //$FlowIssue
+  class UnionType implements $Iterable<[string, *], void, void> {
+    @nonenumerable
+    static ಠ_ಠ = true
+    @nonenumerable
+    ಠ_ಠ = true;
     //$FlowIssue
     [typeMark] = true
     //$FlowIssue
     static [typeMark] = true
-    // static typeName: string = typeName
-    // static canMatch: boolean = canMatch
 
     @readonly
     typeName: string = typeName
@@ -94,8 +95,6 @@ const Union = ([typeName]: [string]) => (desc: {[name: string]: *}) => {
 
     constructor() {
       Object.assign(this, subtypesMap)
-      // for (const [key, arg] of subtypes)
-      //   this[key] = makeSubtype(arg, key, typeName)
     }
   }
   Object.assign(UnionType, subtypesMap)

@@ -4,5 +4,5 @@
 import Union from './union'
 
 export { Union }
-export { Type } from './container'
+export { Type } from './type'
 
