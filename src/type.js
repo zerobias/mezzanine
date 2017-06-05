@@ -7,7 +7,7 @@ import { map, is, when, equals } from 'ramda'
 import toFastProps from './to-fast-props'
 import verify, { isSingleProof } from './verify'
 import { omitNew, rename, methodTag } from './decorators'
-import { containerMark, typeMark } from './config'
+import { mark, typeMark } from './config'
 
 const canHaveProps = (val: *) =>
      (typeof val === 'object' && val !== null)
@@ -40,7 +40,7 @@ function transformMonoInput(input: *) {
     //$ FlowIssue
     [typeMark] = true
     //$ FlowIssue
-    static [containerMark] = uniqMark
+    static [mark] = uniqMark
 
     //$ FlowIssue
     static [typeMark] = true
@@ -109,7 +109,9 @@ const makeContainer = (
     //$FlowIssue
     [typeMark] = true
     //$FlowIssue
-    static [containerMark] = uniqMark
+    static [mark] = uniqMark;
+    //$FlowIssue
+    [mark] = uniqMark
 
     //$FlowIssue
     static [typeMark] = true
@@ -118,8 +120,8 @@ const makeContainer = (
     static is(val: *) {
       //eslint-disable-next-line
       if (!!val) {
-        if (val[containerMark] === uniqMark) return true
-        if (!!val.value && val.value[containerMark] === uniqMark) return true
+        if (val[mark] === uniqMark) return true
+        if (!!val.value && val.value[mark] === uniqMark) return true
       }
 
       const data = isMono
@@ -127,16 +129,14 @@ const makeContainer = (
         : val
       return verify(desc, data)
     }
-    //$FlowIssue
-    [containerMark] = uniqMark
 
     @methodTag`is${name}`
     is(val: *) {
-      // if (!!val && val[containerMark] === uniqMark) return true
+      // if (!!val && val[mark] === uniqMark) return true
       //eslint-disable-next-line
       if (!!val) {
-        if (val[containerMark] === uniqMark) return true
-        if (!!val.value && val.value[containerMark] === uniqMark) return true
+        if (val[mark] === uniqMark) return true
+        if (!!val.value && val.value[mark] === uniqMark) return true
       }
       const data = isMono
         ? transformMonoInput(val)
@@ -177,8 +177,8 @@ const makeContainer = (
         : obj
       isMono && console.log('isMono', obj, data)
       //$FlowIssue
-      if (!!data && data[containerMark] === uniqMark) return data
-      if (!!data && !!data.value && data.value[containerMark] === uniqMark) return data
+      if (!!data && data[mark] === uniqMark) return data
+      if (!!data && !!data.value && data.value[mark] === uniqMark) return data
 
       if (!Record.is(data) && !Record.is(obj))  {
         console.log(Record, obj, desc)

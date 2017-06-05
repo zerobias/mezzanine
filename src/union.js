@@ -8,13 +8,13 @@
  */
 
 import { nonenumerable, readonly } from 'core-decorators'
-import { zip } from 'ramda'
+import { zip, difference, isEmpty } from 'ramda'
 
 import verify, { isSingleProof, isSingleAlike } from './verify'
 import Type from './type'
 import isOrthogonal from './ortho'
 import { callableClass, omitNew, rename } from './decorators'
-import { containerMark, typeMark } from './config'
+import { mark, typeMark } from './config'
 
 const matchFabric =
   (that: *) =>
@@ -57,6 +57,8 @@ const Union = ([typeName]: [string]) => (desc: {[name: string]: *}) => {
   @rename(typeName)
   //$FlowIssue
   class UnionType implements $Iterable<[string, *], void, void> {
+    $call: (data: *) => *;
+
     @nonenumerable
     static ಠ_ಠ = true
     @nonenumerable
@@ -96,13 +98,37 @@ const Union = ([typeName]: [string]) => (desc: {[name: string]: *}) => {
     constructor() {
       Object.assign(this, subtypesMap)
     }
+
+    @nonenumerable
+    case = (cases: {[string]: (val: *) => *}, subtype: *) => {
+      if (!subtype) return (subtype: *) => this.case(cases, subtype)
+
+      const {
+        _ = () => { throw new Error(`Unmatched case on union ${typeName}`) },
+        ...realCases
+      } = cases
+      const diff = difference(Object.keys(realCases), keys)
+      if (!isEmpty(diff)) {
+        throw new Error(`Unrelevant case types ${diff} on type ${typeName}`)
+      }
+      for (const variant of Object.keys(realCases)) {
+        const childType = subtypesMap[variant]
+        const currentCase = realCases[variant]
+        if (childType.is(subtype)) {
+          const finalValue = subtype.ಠ_ಠ && childType[mark] === subtype[mark]
+            ? subtype
+            : childType(subtype)
+          return currentCase(finalValue)
+        }
+      }
+      return _(subtype)
+    }
   }
   Object.assign(UnionType, subtypesMap)
   return new UnionType
 }
 
 export default Union
-
 // const List = Union`List`({
 //   Cons: { list: Array },
 //   Nil: { list: Object },
