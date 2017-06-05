@@ -5,7 +5,13 @@
     "transform-flow-strip-types",
     "transform-decorators-legacy",
     "transform-class-properties",
-    ["transform-object-rest-spread", { "useBuiltIns": true }]
+    ["transform-object-rest-spread", { "useBuiltIns": true }],
+    ["transform-es2015-for-of", {
+      "loose": true
+    }],
+    ["transform-es2015-block-scoping", {
+      "throwIfClosureRequired": true
+    }]
     // ,"closure-elimination"
   ],
   "env": {

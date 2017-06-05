@@ -101,7 +101,7 @@ const makeContainer = (
   @omitNew
   // @callableClass(matchFabric)
   @rename(name)
-  class Type {
+  class Record {
     @nonenumerable
     static ಠ_ಠ = true
     @nonenumerable
@@ -180,9 +180,9 @@ const makeContainer = (
       if (!!data && data[containerMark] === uniqMark) return data
       if (!!data && !!data.value && data.value[containerMark] === uniqMark) return data
 
-      if (!Type.is(data) && !Type.is(obj))  {
-        console.log(Type, obj, desc)
-        console.log(Type.is(obj), obj)
+      if (!Record.is(data) && !Record.is(obj))  {
+        console.log(Record, obj, desc)
+        console.log(Record.is(obj), obj)
         throw new TypeError(`Unsafe pattern mismatch`)
       }
       for (const key of keys) {
@@ -198,9 +198,9 @@ const makeContainer = (
   }
   // for (const [key, arg] of subtypes)
   //   //$ FlowIssue
-  //   Type[key] = arg
+  //   Record[key] = arg
 
-  return Type
+  return Record
 }
 
 /**
@@ -209,7 +209,7 @@ const makeContainer = (
  * @param {string} typeName
  *
  * @example
- * Type`User`({ id: Number, name: String })
+ * Record`User`({ id: Number, name: String })
  */
 export function Type([typeName]: [string]) {
   return (desc: {[name: string]: *}) => {
