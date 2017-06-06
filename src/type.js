@@ -2,7 +2,7 @@
 'use strict'
 
 import { nonenumerable, readonly, enumerable } from 'core-decorators'
-import { map, is, when, equals, pick, merge } from 'ramda'
+import { map, is, when, equals, pick, merge, anyPass, o } from 'ramda'
 
 import toFastProps from './to-fast-props'
 import verify, { isSingleProof } from './verify'
@@ -78,9 +78,12 @@ function transformMonoInput(input: *) {
   return Monotype
 }*/
 
-//$FlowIssue
-const makeStringDesc = when(
-  is(String),
+const isDirectlyEquals: (val: *) => boolean = o(anyPass, map(is), [
+  String, Number, Boolean
+])
+
+const doAtomicEqual = when(
+  isDirectlyEquals,
   equals
 )
 
@@ -95,7 +98,7 @@ const makeContainer = (
   descriptor: *,
   isMono: boolean
 ) => {
-  const desc = map(makeStringDesc, descriptor)
+  const desc = map(doAtomicEqual, descriptor)
 
   const keys = Object.keys(desc)
   // const values = Object.values(desc)

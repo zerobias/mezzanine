@@ -91,26 +91,73 @@ describe('simple type', () => {
 })
 
 
-describe('string types', () => {
-  const Tagged = Type`Tagged`({
-    tag : 'tag type',
-    data: Object,
-  })
-  const tagged = Tagged({
-    tag : 'tag type',
-    data: {},
-  })
-  expect(Tagged).toHaveProperty('type', 'Tagged')
-  expect(tagged).toHaveProperty('type', 'Tagged')
-  expect(tagged).toHaveProperty('tag', 'tag type')
-  expect(tagged).toHaveProperty('data', {})
+describe('disjoint fields', () => {
 
-  expect(() => {
-    Tagged({
-      tag : 'invalid tag',
+  test('disjoint string', () => {
+    const Tagged = Type`Tagged`({
+      tag : 'tag type',
+      data: Object,
+    })
+    const tagged = Tagged({
+      tag : 'tag type',
       data: {},
     })
-  }).toThrow()
+    expect(Tagged).toHaveProperty('type', 'Tagged')
+    expect(tagged).toHaveProperty('type', 'Tagged')
+    expect(tagged).toHaveProperty('tag', 'tag type')
+    expect(tagged).toHaveProperty('data', {})
+
+    expect(() => {
+      Tagged({
+        tag : 'invalid tag',
+        data: {},
+      })
+    }).toThrow()
+  })
+
+
+  test('disjoint number', () => {
+    const Third = Type`Third`({
+      id  : 3,
+      data: Object,
+    })
+    const third = Third({
+      id  : 3,
+      data: {},
+    })
+    expect(Third).toHaveProperty('type', 'Third')
+    expect(third).toHaveProperty('id', 3)
+    expect(third).toHaveProperty('data', {})
+
+    expect(() => {
+      Third({
+        id  : 4,
+        data: {},
+      })
+    }).toThrow()
+  })
+
+
+  test('disjoint bool', () => {
+    const Rejected = Type`Rejected`({
+      status: false,
+      data  : Object,
+    })
+    const rejected = Rejected({
+      status: false,
+      data  : {},
+    })
+    expect(rejected).toHaveProperty('status', false)
+    expect(rejected).toHaveProperty('data', {})
+
+    expect(() => {
+      Rejected({
+        status: true,
+        data  : {},
+      })
+    }).toThrow()
+  })
+
 })
 
 
@@ -120,13 +167,11 @@ test('equals', () => {
     y: Number,
   })
 
-  const data1 = { x: 1, y: 10 }
-  const point1 = Point(data1)
-  const point2 = Point(data1)
+  const rawData = { x: 1, y: 10 }
+  const point1 = Point(rawData)
+  const point2 = Point(rawData)
   // point2.
   expect(point1.equals(point2)).toBe(true)
-  // console.log(point1, point1.toJSON(), Point.ಠ_ಠ === point1.ಠ_ಠ)
-  // console.log(equals(point1.toJSON(), data1))
-  expect(point1.equals(data1)).toBe(true)
+  expect(point1.equals(rawData)).toBe(true)
 })
 

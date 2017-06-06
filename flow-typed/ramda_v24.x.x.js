@@ -747,6 +747,30 @@ declare module 'ramda' {
 
   declare export function empty<T>(x: T): T;
 
+  declare export function o<F, G, X>(
+    f: (val: G) => F,
+  ): (
+    g: (val: X) => G,
+  ) => (x: X) => F
+  declare export function o<F, G, X>(
+    f: (val: G) => F,
+  ): (
+    g: (val: X) => G,
+    x: X
+  ) => F
+  declare export function o<F, G, X>(
+    f: (val: G) => F,
+    g: (val: X) => G,
+  ): (
+    x: X
+  ) => F
+  declare export function o<F, G, X>(
+    f: (val: G) => F,
+    g: (val: X) => G,
+    x: X
+  ): F
+
+
   declare export function flip<A,B,TResult>(fn: (arg0: A, arg1: B) => TResult): CurriedFunction2<B,A,TResult>;
   declare export function flip<A,B,C,TResult>(fn: (arg0: A, arg1: B, arg2: C) => TResult): (( arg0: B, arg1: A, ...rest: Array<void>) => (arg2: C) => TResult) & (( arg0: B, arg1: A, arg2: C) => TResult);
   declare export function flip<A,B,C,D,TResult>(fn: (arg0: A, arg1: B, arg2: C, arg3: D) => TResult): ((arg1: B, arg0: A, ...rest: Array<void>) => (arg2: C, arg3: D) => TResult) & ((arg1: B, arg0: A, arg2: C, arg3: D) => TResult);
