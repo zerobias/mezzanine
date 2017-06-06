@@ -1,7 +1,7 @@
 {
   "name": "mezzanine",
-  "version": "0.0.7",
-  "description": "Tagged unions with pattern matching",
+  "version": "0.0.8",
+  "description": "Fantasy land union types with pattern matching",
   "main": "lib/index.js",
   "module": "es/index.js",
   "esnext": "es/index.js",
@@ -38,6 +38,7 @@
     "eslint": "^3.19.0",
     "eslint-plugin-babel": "^4.1.1",
     "eslint-plugin-flowtype": "^2.34.0",
+    "fantasy-land": "^3.3.0",
     "flow-bin": "^0.47.0",
     "jest": "^20.0.4",
     "rimraf": "^2.6.1"
@@ -51,5 +52,12 @@
     "src",
     "lib",
     "es"
+  ],
+  "keywords": [
+    "pattern matching",
+    "fp",
+    "functional",
+    "type",
+    "fantasy-land"
   ]
 }

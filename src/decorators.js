@@ -1,6 +1,8 @@
 //@flow
+'use strict'
+
 import { without } from 'ramda'
-import type { PropDescriptor } from 'index.h'
+import type { PropDescriptor } from './index.h'
 
 const omitProto = without(['prototype'])
 
@@ -44,6 +46,12 @@ export const methodTag = (...tags: *) => {
   }
 }
 
+export const fantasySpec = <K, P>(target: K, key: string, descriptor: PropDescriptor<P>) => {
+  descriptor.value = descriptor.value.bind(target)
+  Object.defineProperty(target, `fantasy-land/${key}`, descriptor)
+  return descriptor
+}
+
 export const callableClass = <T, F>(fabric: (obj: T) => F) => (klass: Class<T>): Class<(T | F)> => {
   class Decorated {
     $call: F
@@ -72,3 +80,4 @@ export function copyProps<+T: Object, S>(source: T, target: S): T | S {
   Object.setPrototypeOf(target, source)
   return ((target: any): T | S)
 }
+

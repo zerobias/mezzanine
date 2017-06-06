@@ -490,8 +490,8 @@ declare module 'ramda' {
   declare export function zipWith<T,S,R>(fn: (a: T, b: S) => R, xs: Array<T>, ys: Array<S>): Array<R>;
 
   // *Relation
-  declare export function equals<T>(x: T, ...rest: Array<void>): (y: T) => boolean;
-  declare export function equals<T>(x: T, y: T): boolean;
+  declare export function equals<+T>(x: T): (y: T) => boolean;
+  declare export function equals<+T>(x: T, y: T): boolean;
 
   declare export function eqBy<A,B>(fn: (x: A) => B, ...rest: Array<void>): ((x: A, y: A) => boolean) & ((x: A, ...rest: Array<void>) => (y: A) => boolean);
   declare export function eqBy<A,B>(fn: (x: A) => B, x: A, ...rest: Array<void>): (y: A) => boolean;

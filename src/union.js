@@ -14,7 +14,7 @@ import verify, { isSingleProof, isSingleAlike } from './verify'
 import Type from './type'
 import isOrthogonal from './ortho'
 import { callableClass, omitNew, rename } from './decorators'
-import { mark, typeMark } from './config'
+import { typeMark } from './config'
 
 const matchFabric =
   (that: *) =>
@@ -115,7 +115,7 @@ const Union = ([typeName]: [string]) => (desc: {[name: string]: *}) => {
         const childType = subtypesMap[variant]
         const currentCase = realCases[variant]
         if (childType.is(subtype)) {
-          const finalValue = subtype.ಠ_ಠ && childType[mark] === subtype[mark]
+          const finalValue = childType.ಠ_ಠ === subtype.ಠ_ಠ
             ? subtype
             : childType(subtype)
           return currentCase(finalValue)
