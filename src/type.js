@@ -162,7 +162,8 @@ const makeContainer = <F>(
 
     //$FlowIssue
     * [Symbol.iterator]() {
-      yield* keys //TODO Replace with more useful values
+      for (const key of keys) //TODO Replace with more useful values
+        yield ([key, this[key]])
     }
 
     @readonly
@@ -170,6 +171,7 @@ const makeContainer = <F>(
     @readonly
     static type: string = name
 
+    @nonenumerable
     @readonly
     typeName: string = typeName
 
@@ -197,7 +199,7 @@ const makeContainer = <F>(
     }
 
     chain(fn: <T>(val: T) => Record): Record {
-      return fn(this.toJSON())
+      return fn(this.toJSON().value)
     }
 
     extend(fn: (val: Record) => *): Record {
@@ -324,7 +326,7 @@ const makeContainer = <F>(
  * @example
  * Record`User`({ id: Number, name: String })
  */
-export function Type([typeName]: [string]) {
+export function Type([typeName]: string[]) {
   return <+T: *, +P, +F>(desc: {+[name: string]: P}, func: {[name: string]: ContextMethod<T, F>} = {}) => {
     const isMono = isSingleProof(desc)
     return makeContainer(typeName, typeName, desc, isMono, func)
