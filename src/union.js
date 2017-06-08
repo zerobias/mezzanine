@@ -28,12 +28,12 @@ const matchFabric =
 const makeSubtype = (arg: *, key: string, typeName: string) => {
   const withName = rename(key)
   if (isSingleProof(arg))
-    return withName(Type(key, typeName, { value: arg }, true))
+    return withName(Type(key, typeName, { value: arg }, true, {}))
   if (isSingleAlike(arg))
-    return withName(Type(key, typeName, arg, true))
+    return withName(Type(key, typeName, arg, true, {}))
   if (typeof arg !== 'object' || arg === null) throw new TypeError(`Wrong arg type, expect object got ${typeof arg}`)
 
-  return withName(Type(key, typeName, arg, false))
+  return withName(Type(key, typeName, arg, false, {}))
 }
 
 /**

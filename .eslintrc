@@ -133,7 +133,9 @@
         "?": "before",
         ":": "before",
         "||": "before",
-        "&&": "before"
+        "|": "before",
+        "&&": "before",
+        "&": "before"
       }
     }],
     "newline-per-chained-call": ["error", {

@@ -161,7 +161,7 @@ describe('disjoint fields', () => {
 })
 
 
-test('equals', () => {
+describe('equals', () => {
   const Point = Type`Point`({
     x: Number,
     y: Number,
@@ -170,8 +170,71 @@ test('equals', () => {
   const rawData = { x: 1, y: 10 }
   const point1 = Point(rawData)
   const point2 = Point(rawData)
-  // point2.
-  expect(point1.equals(point2)).toBe(true)
-  expect(point1.equals(rawData)).toBe(true)
+
+
+  test('objects with same values should be equals', () => {
+    expect(point1.equals(point2)).toBe(true)
+  })
+
+
+  test('even plain objects should be correctly compared', () => {
+    expect(point1.equals(rawData)).toBe(true)
+  })
 })
+
+
+
+
+describe('user defined functions', () => {
+  test('basic function definition', () => {
+    const fun = (ctx) => function testFun(...args) {
+      return [ctx, ...args]
+    }
+    const Point = Type`Point`({
+      x: Number,
+      y: Number,
+    }, { fun })
+    const point = Point({ x: 1, y: 2 })
+    expect(point.fun(1, 2, 3)).toEqual([point, 1, 2, 3])
+  })
+
+  test('use context', () => {
+    const sum =
+      (ctx) => (num) => ctx.x + ctx.y + num
+    const Point = Type`Point`({
+      x: Number,
+      y: Number,
+    }, { sum })
+    const point = Point({ x: 1, y: 2 })
+    expect(point.sum(10)).toBe(13)
+  })
+
+  test('computed property', () => {
+    const sum = (ctx) => ctx.x + ctx.y
+    const Point = Type`Point`({
+      x: Number,
+      y: Number,
+    }, { sum })
+    const point = Point({ x: 1, y: 2 })
+    expect(point.sum).toEqual(3)
+  })
+
+  test('access to type constructor', () => {
+    const inc = (ctx) => ({ x: ctx.x + 1, y: ctx.y })
+    const remap =
+      (ctx, Ctx) => (fn) => Ctx(fn(ctx))
+    const Point = Type`Point`({
+      x: Number,
+      y: Number,
+    }, { remap })
+    const point = Point({ x: 1, y: 2 })
+    const result = point.remap(inc)
+    expect(result).toHaveProperty('type', 'Point')
+    expect(result).toHaveProperty('x', 2)
+    expect(result).toHaveProperty('y', 2)
+    expect(result.equals({ x: 2, y: 2 })).toBe(true)
+    expect(result.ಠ_ಠ).toBe(Point.ಠ_ಠ)
+  })
+})
+
 

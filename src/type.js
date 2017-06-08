@@ -88,16 +88,22 @@ const doAtomicEqual = when(
 )
 
 interface TypeRecord<Schema>{
-  is(val: *): boolean,
+  +ಠ_ಠ: Symbol,
+  +keys: string[],
+  is(val: mixed): boolean,
   toJSON(): Schema,
 }
 
-const makeContainer = (
+type ContextMethod<T, F> = (ctx: T) => F
+
+const makeContainer = <F>(
   name: string,
   typeName: string,
   descriptor: *,
-  isMono: boolean
+  isMono: boolean,
+  func: {[name: string]: ContextMethod<*, F>}
 ) => {
+
   const desc = map(doAtomicEqual, descriptor)
 
   const keys = Object.keys(desc)
@@ -303,16 +309,20 @@ const makeContainer = (
           : property
         // console.log(this[key])
       }
+      funcDesc(this)
       toFastProps(this)
       // console.log(this)
     }
   }
-  // for (const [key, arg] of subtypes)
-  //   //$ FlowIssue
-  //   Record[key] = arg
 
   const RecordStatic = Record
-
+  const funcDesc = ctx => {
+    const funcMap = map(fn => ({
+      enumerable: false,
+      value     : fn(ctx, RecordStatic),
+    }), func)
+    Object.defineProperties(ctx, funcMap)
+  }
   return Record
 }
 
@@ -329,15 +339,13 @@ const makeContainer = (
  * - Extend
  * - Comonad
  *
- * @param {string} typeName
- *
  * @example
  * Record`User`({ id: Number, name: String })
  */
 export function Type([typeName]: [string]) {
-  return (desc: {[name: string]: *}) => {
+  return <+T: *, +P, +F>(desc: {+[name: string]: P}, func: {[name: string]: ContextMethod<T, F>} = {}): T => {
     const isMono = isSingleProof(desc)
-    return makeContainer(typeName, typeName, desc, isMono)
+    return makeContainer(typeName, typeName, desc, isMono, func)
   }
 }
 

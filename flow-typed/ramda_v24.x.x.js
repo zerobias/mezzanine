@@ -217,33 +217,22 @@ declare module 'ramda' {
   declare export function toUpper(a: string): string;
   declare export function trim(a: string): string;
 
-  // *Type
-  // declare export function is<T>(t: T, ...rest: Array<void>): (v: any) => boolean;
-  // declare export function is<T>(t: T, v: any): boolean;
-  declare export function is(t: typeof Number, v: Number): true
-  declare export function is(t: typeof String, v: String): true
-  declare export function is(t: typeof Boolean, v: Boolean): true
-  declare export function is(t: typeof Object, v: Object): true
-  declare export function is(t: typeof Array, v: Array): true
-  declare export function is(t: typeof Function, v: Function): true
-  declare export function is(t: typeof Number, v: $Diff<mixed, Number>): false
-  declare export function is(t: typeof String, v: $Diff<mixed, String>): false
-  declare export function is(t: typeof Boolean, v: $Diff<mixed, Boolean>): false
-  declare export function is(t: typeof Object, v: $Diff<mixed, Object>): false
-  declare export function is(t: typeof Array, v: $Diff<mixed, Array>): false
-  declare export function is(t: typeof Function, v: $Diff<mixed, Function>): false
-  declare export function is(t: typeof Number): (v: Number) => true
-  declare export function is(t: typeof String): (v: String) => true
-  declare export function is(t: typeof Boolean): (v: Boolean) => true
-  declare export function is(t: typeof Object): (v: Object) => true
-  declare export function is(t: typeof Array): (v: Array) => true
-  declare export function is(t: typeof Function): (v: Function) => true
-  declare export function is(t: typeof Number): (v: $Diff<mixed, Number>) => false
-  declare export function is(t: typeof String): (v: $Diff<mixed, String>) => false
-  declare export function is(t: typeof Boolean): (v: $Diff<mixed, Boolean>) => false
-  declare export function is(t: typeof Object): (v: $Diff<mixed, Object>) => false
-  declare export function is(t: typeof Array): (v: $Diff<mixed, Array>) => false
-  declare export function is(t: typeof Function): (v: $Diff<mixed, Function>) => false
+  declare type NativeType =
+    typeof Number
+  | typeof String
+  | typeof Boolean
+  | typeof Object
+  | typeof Array
+  | typeof Function
+  | typeof RegExp
+  | typeof Symbol
+
+  declare export function is<+T>(t: Class<T>, v: T): true
+  declare export function is<+T, +C: Class<T>>(t: C, v: T): true
+  declare export function is(t: NativeType, v: mixed): boolean
+  declare export function is<+T>(t: Class<T>, v: $Diff<mixed, T>): false
+  declare export function is<+T>(t: Class<T>): (v: T) => true
+  declare export function is(t: NativeType): (v: mixed) => boolean
 
 
   declare var propIs: CurriedFunction3<any,string,Object,boolean>;
