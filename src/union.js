@@ -13,14 +13,13 @@ import { zip, difference, isEmpty } from 'ramda'
 import verify, { isSingleProof, isSingleAlike } from './verify'
 import Type from './type'
 import isOrthogonal from './ortho'
-import { callableClass, omitNew, rename } from './decorators'
+import { callableClass, rename } from './decorators'
 import { typeMark } from './config'
 
 const matchFabric =
   (that: *) =>
     function match(newVal: *) {
-      newVal /*?*/
-      for (const [key, pattern] of that) {
+      for (const [, pattern] of that) {
         if (pattern.is(newVal)) return pattern(newVal)
       }
       throw new TypeError('Unmatched pattern')
@@ -60,13 +59,9 @@ const Union = ([typeName]: [string]) => (desc: {[name: string]: *}) => {
     $call: (data: *) => *;
 
     @nonenumerable
-    static ಠ_ಠ = true
-    @nonenumerable
     ಠ_ಠ = true;
     //$FlowIssue
     [typeMark] = true
-    //$FlowIssue
-    static [typeMark] = true
 
     @readonly
     typeName: string = typeName
@@ -75,7 +70,7 @@ const Union = ([typeName]: [string]) => (desc: {[name: string]: *}) => {
     canMatch: boolean = canMatch
 
     @nonenumerable
-    get _types(): string[] {
+    get types(): string[] {
       return keys
     }
 
@@ -104,12 +99,12 @@ const Union = ([typeName]: [string]) => (desc: {[name: string]: *}) => {
       if (!subtype) return (subtype: *) => this.case(cases, subtype)
 
       const {
-        _ = () => { throw new Error(`Unmatched case on union ${typeName}`) },
+        _ = defaultCase,
         ...realCases
       } = cases
       const diff = difference(Object.keys(realCases), keys)
       if (!isEmpty(diff)) {
-        throw new Error(`Unrelevant case types ${diff} on type ${typeName}`)
+        throw new Error(`Unrelevant case types ${diff.toString()} on type ${typeName}`)
       }
       for (const variant of Object.keys(realCases)) {
         const childType = subtypesMap[variant]
@@ -126,6 +121,10 @@ const Union = ([typeName]: [string]) => (desc: {[name: string]: *}) => {
   }
   Object.assign(UnionType, subtypesMap)
   return new UnionType
+}
+
+const defaultCase = (instance: *) => {
+  throw new Error(`Unmatched case on union ${instance.typeName}`)
 }
 
 export default Union

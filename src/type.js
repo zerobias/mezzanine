@@ -6,7 +6,7 @@ import { map, is, when, equals, pick, merge, anyPass, o } from 'ramda'
 
 import toFastProps from './to-fast-props'
 import verify, { isSingleProof } from './verify'
-import { omitNew, rename, methodTag, fantasySpec } from './decorators'
+import { omitNew, rename, methodTag } from './decorators'
 import { typeMark } from './config'
 
 const canHaveProps = (val: *) =>
@@ -143,7 +143,6 @@ const makeContainer = <F>(
       const data = isMono
         ? transformMonoInput(val)
         : val
-      //$FlowIssue
       return verify(desc, data)
     }
 
@@ -158,7 +157,6 @@ const makeContainer = <F>(
       const data = isMono
         ? transformMonoInput(val)
         : val
-      //$FlowIssue
       return verify(desc, data)
     }
 
@@ -189,7 +187,6 @@ const makeContainer = <F>(
     @nonenumerable
     static isMono: boolean = isMono
 
-    // @fantasySpec
     map(fn: <T>(val: T) => T): Record {
       return RecordStatic(fn(this.toJSON()))
     }
@@ -199,27 +196,19 @@ const makeContainer = <F>(
       return RecordStatic(fn(this.toJSON()))
     }
 
-    // @fantasySpec
     chain(fn: <T>(val: T) => Record): Record {
       return fn(this.toJSON())
     }
 
-    // @fantasySpec
     extend(fn: (val: Record) => *): Record {
       return RecordStatic(fn(this))
     }
 
-    // @fantasySpec
-    static equals = (a: Record, b: Record): boolean => {
-      return a.equals(b)
-    }
+    static equals = (a: Record, b: Record): boolean => a.equals(b)
 
     //$FlowIssue
-    static ['fantasy-land/equals'] = (a: Record, b: Record): boolean => {
-      return a.equals(b)
-    }
+    static ['fantasy-land/equals'] = (a: Record, b: Record): boolean => a.equals(b)
 
-    // @fantasySpec
     equals(val: Record): boolean {
       if (!RecordStatic.is(val)) return false
       const asTyped = RecordStatic.of(val)
@@ -252,7 +241,6 @@ const makeContainer = <F>(
       return RecordStatic(merge(this.toJSON(), struct))
     }
 
-    // @fantasySpec
     extract() {
       return this.toJSON()
     }
@@ -261,7 +249,6 @@ const makeContainer = <F>(
       return this.toJSON()
     }
 
-    // @fantasySpec
     ap(m: *) {
       return m.chain(f => this.map(f))
     }
@@ -270,18 +257,13 @@ const makeContainer = <F>(
       return m.chain(f => this.map(f))
     }
 
-    // @fantasySpec
-    static of = (val: *): Record => {
-      return val && (Record.ಠ_ಠ === val.ಠ_ಠ)
+    static of = (val: *): Record => val && (Record.ಠ_ಠ === val.ಠ_ಠ)
         ? val
         : RecordStatic(val)
-    }
     //$FlowIssue
-    static ['fantasy-land/of'] = (val: *): Record => {
-      return val && (Record.ಠ_ಠ === val.ಠ_ಠ)
+    static ['fantasy-land/of'] = (val: *): Record => val && (Record.ಠ_ಠ === val.ಠ_ಠ)
         ? val
         : RecordStatic(val)
-    }
 
     constructor(obj: *) {
       //$ FlowIssue
@@ -343,7 +325,7 @@ const makeContainer = <F>(
  * Record`User`({ id: Number, name: String })
  */
 export function Type([typeName]: [string]) {
-  return <+T: *, +P, +F>(desc: {+[name: string]: P}, func: {[name: string]: ContextMethod<T, F>} = {}): T => {
+  return <+T: *, +P, +F>(desc: {+[name: string]: P}, func: {[name: string]: ContextMethod<T, F>} = {}) => {
     const isMono = isSingleProof(desc)
     return makeContainer(typeName, typeName, desc, isMono, func)
   }

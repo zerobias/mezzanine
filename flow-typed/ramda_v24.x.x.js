@@ -227,9 +227,9 @@ declare module 'ramda' {
   | typeof RegExp
   | typeof Symbol
 
+  declare export function is<+T: NativeType>(t: T, v: mixed): boolean
   declare export function is<+T>(t: Class<T>, v: T): true
   declare export function is<+T, +C: Class<T>>(t: C, v: T): true
-  declare export function is(t: NativeType, v: mixed): boolean
   declare export function is<+T>(t: Class<T>, v: $Diff<mixed, T>): false
   declare export function is<+T>(t: Class<T>): (v: T) => true
   declare export function is(t: NativeType): (v: mixed) => boolean

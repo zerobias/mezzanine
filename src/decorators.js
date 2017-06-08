@@ -6,7 +6,7 @@ import type { PropDescriptor } from './index.h'
 
 const omitProto = without(['prototype'])
 
-export function omitNew<+T>(klass: Class<T>) {
+export function omitNew<+T>(klass: Class<T> & Function) {
   function Decorated(...args: Array<*>) {
     return new klass(...args)
   }
@@ -28,7 +28,7 @@ export function mergeTemplateArgs(strings: string[], ...values?: Array<*>): Arra
   return result
 }
 
-export const rename = (name: string) => <T>(fn: T): T => {
+export const rename = (name: string) => <T: Function>(fn: T): T => {
   const nameDescriptor = Object.getOwnPropertyDescriptor(fn, 'name')
   nameDescriptor.value = name
   Object.defineProperty(fn, 'name', nameDescriptor)
@@ -40,36 +40,36 @@ export const methodTag = (...tags: *) => {
     ? mergeTemplateArgs(...tags).join('')
     : tags[0] || ''
   const renamer = rename(name)
-  return <K, P>(target: K, key: string, descriptor: PropDescriptor<P>) => {
+  return <K, P: Function>(target: K, key: string, descriptor: PropDescriptor<P>) => {
+    if (descriptor.value === undefined)
+      throw new TypeError('undefined renamed value')
     renamer(descriptor.value)
     return descriptor
   }
 }
 
-export const fantasySpec = <K, P>(target: K, key: string, descriptor: PropDescriptor<P>) => {
-  descriptor.value = descriptor.value.bind(target)
-  Object.defineProperty(target, `fantasy-land/${key}`, descriptor)
-  return descriptor
-}
+export const callableClass =
+  <T, F>(fabric: (obj: T) => F) =>
+    (klass: Class<T> & Function): Class<(T | F)> => {
+      class Decorated {
+        $call: F
+        constructor(...args: Array<*>) {
+          const instance = new klass(...args)
+          const callable = fabric(instance)
+          copyProps(instance, callable)
+          return callable
+        }
+      }
 
-export const callableClass = <T, F>(fabric: (obj: T) => F) => (klass: Class<T>): Class<(T | F)> => {
-  class Decorated {
-    $call: F
-    constructor(...args: Array<*>) {
-      const instance = new klass(...args)
-      const callable = fabric(instance)
-      copyProps(instance, callable)
-      return callable
+      copyProps(klass, Decorated)
+
+      return ((Decorated: any): Class<(T | F)>)
     }
-  }
-
-  copyProps(klass, Decorated)
-
-  return ((Decorated: any): Class<(T | F)>)
-}
 
 export function copyProps<+T: Object, S>(source: T, target: S): T | S {
-  const props = omitProto(Reflect.ownKeys(source))
+  const props =
+    omitProto(Object.getOwnPropertyNames(source))
+      .concat(Object.getOwnPropertySymbols(source))
   props.forEach((prop) => {
     Object.defineProperty(
       target,
@@ -77,7 +77,8 @@ export function copyProps<+T: Object, S>(source: T, target: S): T | S {
       Object.getOwnPropertyDescriptor(source, prop)
     )
   })
-  Object.setPrototypeOf(target, source)
+
+  Object.setPrototypeOf(target, Object.getPrototypeOf(source))
   return ((target: any): T | S)
 }
 

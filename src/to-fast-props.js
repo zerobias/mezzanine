@@ -11,6 +11,7 @@ function FastObject(o) {
 	// A prototype object will have "fast properties" enabled once it is checked
 	// against the inline property cache of a function, e.g. fastProto.property:
 	// https://github.com/v8/v8/blob/6.0.122/test/mjsunit/fast-prototype.js#L48-L63
+  //$FlowIssue
   if (fastProto !== null && typeof fastProto.property) {
     const result = fastProto
     fastProto = FastObject.prototype = null
@@ -26,7 +27,7 @@ function FastObject(o) {
 // Initialize the inline property cache of FastObject.
 FastObject()
 
-function toFastproperties(o) {
+function toFastproperties<T: Object>(o: T) {
   return FastObject(o)
 }
 

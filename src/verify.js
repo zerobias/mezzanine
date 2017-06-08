@@ -90,19 +90,11 @@ const canAccessKeys = (data: *): %checks =>
   || proofCase.model(data)
 
 function validate(proof: Proof, data: mixed, dataKey: ?string): boolean {
-  // console.log(proof, data) /*?*/
-  if (data === '=')
-    console.log(
-      proof,
-      data,
-      proof.is && proof.is({ value: data }) ||
-      typeof proof === 'function' && proof({ value: data }))
   if (proofCase.native(proof)) return is(proof, data)
   if (proofCase.model(proof)) return proof.is(data)
-  if (proofCase.func(proof)) return proof(data, dataKey)
+  if (typeof proof === 'function') return proof(data, dataKey)
   if (proof == null) return false
   if (data == null) return false
-  // typeof proof/*?*/
   if (proofCase.obj(proof) && (canAccessKeys(data))) {
     ((proof): {+[key: string]: Proof})
     const tProof: {+[key: string]: Proof} = (proof: any)
