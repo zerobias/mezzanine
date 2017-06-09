@@ -18,7 +18,7 @@ import type { ContextMethod } from './index.h'
  * - Comonad
  *
  * @example
- * Record`User`({ id: Number, name: String })
+ * Type`User`({ id: Number, name: String })
  */
 function Type([typeName]: string[]) {
   return <+T: *, +P, +F>(desc: {+[name: string]: P}, func: {[name: string]: ContextMethod<T, F>} = {}) => {

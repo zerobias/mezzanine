@@ -5,8 +5,9 @@ import { map, equals, pick, merge } from 'ramda'
 
 import toFastProps from '../to-fast-props'
 import { omitNew, rename, methodTag } from '../decorators'
+import { isMezzanine, toJSON } from './fixtures'
 import { typeMark } from '../config'
-import { isMezzanine, createBuilder, createPred, transformInput } from './descriptor'
+import { createBuilder, createPred, transformInput } from './descriptor'
 
 import type { ContextMethod } from './index.h'
 
@@ -56,7 +57,7 @@ const makeContainer = <F>(
     static [typeMark] = true
 
     toJSON(): {[key: string]: *} {
-      return pick(keys, this)
+      return toJSON(this)
     }
 
     @enumerable
@@ -105,21 +106,21 @@ const makeContainer = <F>(
     @nonenumerable
     static isMono: boolean = isMono
 
-    map(fn: <T>(val: T) => T): Record {
-      return RecordStatic(fn(this.toJSON()))
+    map(mapFunction: <T>(val: T) => T): Record {
+      return RecordStatic(mapFunction(this.toJSON()))
     }
 
     //$FlowIssue
-    ['fantasy-land/map'](fn: <T>(val: T) => T): Record {
-      return RecordStatic(fn(this.toJSON()))
+    ['fantasy-land/map'](mapFunction: <T>(val: T) => T): Record {
+      return RecordStatic(mapFunction(this.toJSON()))
     }
 
-    chain(fn: <T>(val: T) => Record): Record {
-      return fn(this.toJSON().value)
+    chain(chainFunction: <T>(val: T) => Record): Record {
+      return chainFunction(this.toJSON())
     }
 
-    extend(fn: (val: Record) => *): Record {
-      return RecordStatic(fn(this))
+    extend(extendFunction: (val: Record) => *): Record {
+      return RecordStatic(extendFunction(this))
     }
 
     static equals = (a: Record, b: Record): boolean => a.equals(b)
@@ -194,8 +195,8 @@ const makeContainer = <F>(
       if (isMono && isMezzanine(data.value) && data.value.ಠ_ಠ === uniqMark) return data.value
 
       if (!pred(data))  {
-        console.log(RecordStatic, obj, desc)
-        console.log(pred(obj), obj)
+        // console.log(RecordStatic, obj, desc)
+        // console.log(pred(obj), obj)
         throw new TypeError(`${name}{isMono: ${isMono}}: Unsafe pattern mismatch\nKeys: ${Object.keys(data).toString()}\nValues: ${Object.values(data).toString()}`)
       }
       const dataResult = createBuilder(desc, data)

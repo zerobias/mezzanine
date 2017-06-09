@@ -14,24 +14,8 @@ import { typeContainer } from './type'
 import isOrthogonal from './ortho'
 import { callableClass, rename, omitNew } from './decorators'
 import { typeMark } from './config'
+import { isMezzanine } from './type/fixtures'
 
-const matchFabric =
-  function match(unionClass, union: *) {
-    const funcDesc = <T>(inst: T): T => {
-      const funcMap = map(fn => ({
-        enumerable: false,
-        value     : fn(inst, unionClass),
-      }), unionClass.funcs)
-      Object.defineProperties(inst, funcMap)
-      return inst
-    }
-    for (const [, pattern] of unionClass) {
-      if (pattern.is(union)) {
-        return funcDesc(pattern(union))
-      }
-    }
-    throw new TypeError('Unmatched pattern')
-  }
 
 const makeSubtype = (arg: *, key: string, typeName: string) => {
   const withName = rename(key)
@@ -57,6 +41,8 @@ const Union = ([typeName]: string[]) =>
 (desc: {[name: string]: *}, funcBlob: {[string]: Function} = {}) => {
   const canMatch = isOrthogonal(desc)
 
+  const uniqMark = Symbol(typeName)
+
   const keys = Object.keys(desc)
   const values = Object.values(desc)
   const subtypes = zip(keys, values)
@@ -72,9 +58,9 @@ const Union = ([typeName]: string[]) =>
     static $call: (data: *) => *;
 
     @nonenumerable
-    static ಠ_ಠ = true;
+    static ಠ_ಠ = uniqMark;
     @nonenumerable
-    ಠ_ಠ = true;
+    ಠ_ಠ = uniqMark;
     //$FlowIssue
     static [typeMark] = true;
     //$FlowIssue
@@ -123,8 +109,9 @@ const Union = ([typeName]: string[]) =>
     //   return false
     // }
     static is(val: *) {
+      //$FlowIssue
       for (const [key, pattern] of UnionClass) {
-        console.log(key, pattern, val)
+        // console.log(key, pattern, val)
         if (pattern.is) {
           if (pattern.is(val)) return true
         } else if (typeof pattern === 'function' && pattern(val)) return true
@@ -133,29 +120,28 @@ const Union = ([typeName]: string[]) =>
     }
     is(val: *) {
       for (const [key, pattern] of this) {
-        console.log(key, pattern, val)
+        // console.log(key, pattern, val)
         if (pattern.is) {
           if (pattern.is(val)) return true
         } else if (typeof pattern === 'function' && pattern(val)) return true
       }
       return false
     }
-    toJSON() {
-      // console.log(pick(keys, this))
-      return pick(keys, this)/*?*/
-    }
+    // toJSON() {
+    //   return pick(keys, this)
+    // }
     static funcs = funcBlob
+    keys: string[]
+    isMono: boolean
+    toJSON: () => Object
     constructor(arg: *) {
       // console.log(arg)
       const data = arg && arg.value
         ? arg.value
-        : arg
+        : arg;
       // const funcDesc = <T>(inst: T): T => {
-      // const funcMap = map(fn => ({
-      //     enumerable: false,
-      //     value     : fn(this, UnionClass),
-      //   }), funcBlob)
-      //   Object.defineProperties(this, funcMap)
+
+
       //   // return this
       // }
       let matched = false
@@ -163,22 +149,35 @@ const Union = ([typeName]: string[]) =>
         const pattern = subtypesMap[key]
         if (pattern.is(data)) {
           const fin = pattern(data)
-          // this.value = fin
-          Object.assign(this, fin)
+          reflectProps(this, fin)
+          if (fin.isMono)
+            this.value = fin.value
           matched = true
           break
         }
       }
       if (!matched)
         throw new TypeError('Unmatched pattern')
-
+        const applyFn = fn => fn(this, UnionClass)
+      const funcMap = Object
+        .keys(funcBlob)
+        .reduce(
+          (acc, key) =>
+            (acc[key] = {
+              enumerable: true,
+              value     : applyFn(funcBlob[key]),
+            }, acc)
+          , {}
+        )
+      // console.log(funcMap, funcBlob)
+      Object.defineProperties(this, funcMap)
       // Object.assign(this, subtypesMap)
     }
-    map(fn) {
-      return UnionClass(this.chain(fn))
+    map(mapFunction: <T>(val: T) => T) {
+      return UnionClass(this.chain(mapFunction))
     }
-    chain(fn) {
-      return fn(this.toJSON())
+    chain(chainFunction: <T>(val: T) => Record) {
+      return chainFunction(this.toJSON())
     }
     @nonenumerable
     case(cases: {[string]: (val: *) => *}) {
@@ -196,6 +195,12 @@ const Union = ([typeName]: string[]) =>
       if (!isEmpty(diff)) {
         throw new Error(`Unrelevant case types ${diff.toString()} on type ${typeName}`)
       }
+      if (isMezzanine(subtype) && (subtype.ಠ_ಠ === uniqMark)) {
+        const currentCase = realCases[subtype.type]
+        if (typeof currentCase === 'function')
+          return currentCase(subtype.toJSON(), UnionClass)
+        else return _(subtype)
+      }
       for (const variant of Object.keys(realCases)) {
         const childType = subtypesMap[variant]
         const currentCase = realCases[variant]
@@ -203,7 +208,7 @@ const Union = ([typeName]: string[]) =>
           const finalValue = childType.ಠ_ಠ === subtype.ಠ_ಠ
             ? subtype
             : childType(subtype)
-          return currentCase(finalValue, UnionClass)
+          return currentCase(finalValue.toJSON(), UnionClass)
         }
       }
       return _(subtype)
@@ -216,6 +221,32 @@ const Union = ([typeName]: string[]) =>
 
 const defaultCase = (instance: *) => {
   throw new Error(`Unmatched case on union ${instance.typeName}`)
+}
+
+const reflectProps = (uni: *, child: *) => {
+  Object.assign(uni, child)
+  //$FlowIssue
+  Object.defineProperties(
+    uni, {
+      keys: {
+        enumerable: false,
+        get() {
+          return child.keys
+        }
+      },
+      isMono: {
+        enumerable: false,
+        get() {
+          return child.isMono
+        }
+      },
+      toJSON: {
+        enumerable: false,
+        value() {
+          return child.toJSON()
+        }
+      },
+    })
 }
 
 export default Union
