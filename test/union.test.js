@@ -148,9 +148,11 @@ describe('example: Maybe type', () => {
       })
       console.log(Nullable)
       test('create Valid', () => {
+        // const valid0 = Nullable('ok')
         const valid1 = Nullable({ value: 'ok' })
         const valid2 = Nullable({ value: {} })
         console.log(valid1)
+        console.log(valid1.value)
         expect(valid1).toHaveProperty('value', 'ok')
         expect(valid2).toHaveProperty('value', {})
         expect(valid1).toHaveProperty('typeName', 'Nullable')
@@ -189,7 +191,7 @@ describe('example: Maybe type', () => {
         const valid1 = Nullable({ value: null })
         const valid2 = Nullable()
         const valid3 = Nullable(null)
-        valid2
+        console.log(valid1, Nullable)
         expect(valid1).toBeDefined()
         expect(valid2).toBeDefined()
         expect(valid3).toBeDefined()

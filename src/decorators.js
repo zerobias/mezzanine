@@ -49,13 +49,13 @@ export const methodTag = (...tags: *) => {
 }
 
 export const callableClass =
-  <T, F>(fabric: (obj: T) => F) =>
+  <T, F>(fabric: (klass: Class<T>, obj: T) => F) =>
     (klass: Class<T> & Function): Class<(T | F)> => {
       class Decorated {
         $call: F
         constructor(...args: Array<*>) {
           const instance = new klass(...args)
-          const callable = fabric(instance)
+          const callable = fabric(klass, instance)
           copyProps(instance, callable)
           return callable
         }
@@ -71,11 +71,18 @@ export function copyProps<+T: Object, S>(source: T, target: S): T | S {
     omitProto(Object.getOwnPropertyNames(source))
       .concat(Object.getOwnPropertySymbols(source))
   props.forEach((prop) => {
-    Object.defineProperty(
-      target,
-      prop,
-      Object.getOwnPropertyDescriptor(source, prop)
-    )
+    // console.log(target, prop)
+    try {
+      Object.defineProperty(
+        target,
+        prop,
+        Object.getOwnPropertyDescriptor(source, prop)
+      )
+    } catch (error) {
+      console.log(prop)
+      console.log(error)
+      console.log(source, target)
+    }
   })
 
   Object.setPrototypeOf(target, Object.getPrototypeOf(source))

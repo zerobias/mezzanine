@@ -369,6 +369,9 @@ declare module 'ramda' {
 
   declare var range: CurriedFunction2<number,number,Array<number>>;
 
+  declare export function T(): true
+  declare export function F(): false
+
   declare export function remove<T>(from: number, ...rest: Array<void>): ((to: number, ...rest: Array<void>) => (src: Array<T>) => Array<T>) & ((to: number, src: Array<T>) => Array<T>)
   declare export function remove<T>(from: number, to: number, ...rest: Array<void>): (src: Array<T>) => Array<T>
   declare export function remove<T>(from: number, to: number, src: Array<T>): Array<T>

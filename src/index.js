@@ -7,3 +7,4 @@ export { Union }
 export { Type } from './type'
 import * as decorators from './decorators'
 export { decorators }
+export { Free } from './data-types/free'

@@ -13,7 +13,7 @@ const canHaveProps = (val: *) =>
      (typeof val === 'object' && val !== null)
   || typeof val === 'function'
 
-function transformMonoInput(input: *) {
+export function transformMonoInput(input: *) {
   if (canHaveProps(input) && input.value !== undefined)
     return input
   return { value: input }
@@ -281,7 +281,7 @@ const makeContainer = <F>(
       if (!RecordStatic.is(data) && !RecordStatic.is(obj))  {
         console.log(RecordStatic, obj, desc)
         console.log(RecordStatic.is(obj), obj)
-        throw new TypeError(`Unsafe pattern mismatch`)
+        throw new TypeError(`Unsafe pattern mismatch ${name} ${Object.keys(obj)} ${Object.values(obj)}`)
       }
       for (const key of keys) {
         const rule = desc[key]

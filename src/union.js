@@ -1,4 +1,4 @@
-//
+//@flow
 'use strict'
 
 /**
@@ -11,24 +11,24 @@ import { nonenumerable, readonly } from 'core-decorators'
 import { zip, difference, isEmpty, map, pick } from 'ramda'
 
 import verify, { isSingleProof, isSingleAlike } from './verify'
-import TypeFab, { Type } from './type'
+import TypeFab, { Type, transformMonoInput } from './type'
 import isOrthogonal from './ortho'
-import { callableClass, rename } from './decorators'
+import { callableClass, rename, omitNew } from './decorators'
 import { typeMark } from './config'
 
 const matchFabric =
-  (that: *) => function match(newVal: *) {
+  function match(unionClass, union: *) {
     const funcDesc = <T>(inst: T): T => {
       const funcMap = map(fn => ({
         enumerable: false,
-        value     : fn(inst, that),
-      }), that.funcs)
+        value     : fn(inst, unionClass),
+      }), unionClass.funcs)
       Object.defineProperties(inst, funcMap)
       return inst
     }
-    for (const [, pattern] of that) {
-      if (pattern.is(newVal)) {
-        return funcDesc(pattern(newVal))
+    for (const [, pattern] of unionClass) {
+      if (pattern.is(union)) {
+        return funcDesc(pattern(union))
       }
     }
     throw new TypeError('Unmatched pattern')
@@ -65,35 +65,63 @@ const Union = ([typeName]: string[]) =>
   for (const [key, arg] of subtypes)
     subtypesMap[key] = makeSubtype(arg, key, typeName)
 
-  @callableClass(matchFabric)
+  @omitNew
   @rename(typeName)
+  // @callableClass(matchFabric)
   //$FlowIssue
   class UnionType implements Iterable<[string, *]> {
-    $call: (data: *) => *;
+    static $call: (data: *) => *;
 
     @nonenumerable
+    static ಠ_ಠ = true;
+    @nonenumerable
     ಠ_ಠ = true;
+    //$FlowIssue
+    static [typeMark] = true;
     //$FlowIssue
     [typeMark] = true
 
     @readonly
+    static typeName: string = typeName
+    // @readonly
     typeName: string = typeName
 
     @readonly
+    static canMatch: boolean = canMatch
+    // @readonly
     canMatch: boolean = canMatch
 
     @nonenumerable
     get types(): string[] {
       return keys
     }
+    @nonenumerable
+    static get types(): string[] {
+      return keys
+    }
 
     //$FlowIssue
     * [Symbol.iterator]() {
+      for (const key of keys)
+        yield ([key, this[key]])
+    }
+
+    //$FlowIssue
+    static * [Symbol.iterator]() {
       for (const key of keys)
         yield ([key, subtypesMap[key]])
     }
     // toJSON(): {[key: string]: *} {
     //   return pick(keys, this)
+    // }
+    // static is(val: *) {
+    //   for (const [key, pattern] of UnionType) {
+    //     console.log(key, pattern, val)
+    //     if (pattern.is) {
+    //       if (pattern.is(val)) return true
+    //     } else if (typeof pattern === 'function' && pattern(val)) return true
+    //   }
+    //   return false
     // }
     is(val: *) {
       for (const [key, pattern] of this) {
@@ -105,26 +133,52 @@ const Union = ([typeName]: string[]) =>
       return false
     }
     toJSON() {
-      return this.value.toJSON()
+      console.log(pick(keys, this))
+      return pick(keys, this)/*?*/
     }
-    funcs: *
-    constructor() {
-      Object.assign(this, subtypesMap)
-      const instanceCase = (inst: *) => (cases) => this.case(cases, inst)
-      this.funcs = {
-        ...funcBlob,
-        'case': instanceCase,
-        // toJSON: (inst: *) => pick(keys, inst),
-        map: (inst: *) => fn => union(fn(inst.toJSON())),
-        chain: (inst: *) => (fn) => fn(this.toJSON().value)
+    static funcs = funcBlob
+    constructor(arg) {
+      console.log(arg)
+      const data = arg && arg.value
+        ? arg.value
+        : arg
+      // const funcDesc = <T>(inst: T): T => {
+      // const funcMap = map(fn => ({
+      //     enumerable: false,
+      //     value     : fn(this, UnionClass),
+      //   }), funcBlob)
+      //   Object.defineProperties(this, funcMap)
+      //   // return this
+      // }
+      let matched = false
+      for (const key of Object.keys(subtypesMap)) {
+        const pattern = subtypesMap[key]
+        if (pattern.is(data)) {
+          const fin = pattern(data)
+          // this.value = fin
+          Object.assign(this, fin)
+          matched = true
+          break
+        }
       }
+      if (!matched)
+        return new TypeError('Unmatched pattern')
+
+      // Object.assign(this, subtypesMap)
     }
     map(fn) {
-      return union(fn(this.toJSON()))
+      return UnionClass(this.chain(fn))
+    }
+    chain(fn) {
+      return fn(this.toJSON())
     }
     @nonenumerable
-    case = (cases: {[string]: (val: *) => *}, subtype: *) => {
-      if (!subtype) return (subtype: *) => this.case(cases, subtype)
+    case(cases: {[string]: (val: *) => *}) {
+      return UnionClass.case(cases, this)
+    }
+
+    static case(cases: {[string]: (val: *) => *}, subtype: *) {
+      if (!subtype) return (subtype: *) => UnionClass.case(cases, subtype)
 
       const {
         _ = defaultCase,
@@ -141,15 +195,15 @@ const Union = ([typeName]: string[]) =>
           const finalValue = childType.ಠ_ಠ === subtype.ಠ_ಠ
             ? subtype
             : childType(subtype)
-          return currentCase(finalValue, this)
+          return currentCase(finalValue, UnionClass)
         }
       }
       return _(subtype)
     }
   }
   Object.assign(UnionType, subtypesMap)
-  const union = new UnionType
-  return union
+  const UnionClass = UnionType
+  return UnionClass
 }
 
 const defaultCase = (instance: *) => {
@@ -158,61 +212,61 @@ const defaultCase = (instance: *) => {
 
 export default Union
 
-const Boy = Type`Boy`({
-  name: String,
-  alive: Boolean
-}, {
-  mutableKill: (ctx) => () => { ctx.alive = false }
-})
+// const Boy = Type`Boy`({
+//   name: String,
+//   alive: Boolean
+// }, {
+//   mutableKill: (ctx) => () => { ctx.alive = false }
+// })
 
-// mutable function
-const Fred = Boy({ name: 'Fred', alive: true })
-Fred
+// // mutable function
+// const Fred = Boy({ name: 'Fred', alive: true })
+// Fred
 
-Fred.mutableKill()
-Fred
-
-
-
-const Brothers = Type`Brothers`({
-  elder  : Boy,
-  younger: Boy
-})
-const Childs = Union`Childs`({
-  Single: Boy,
-  Couple: Brothers,
-})
-
-const rawData = { name: 'Fred' }
-Fred.equals(Boy({ name: 'Fred', alive: true })); /*?*/
-Fred.equals(rawData) /*?*/
-
-//transforms
-// Fred.map(({ name }) => ({ name: name+'dy' }))/*?*/
-
-//deep patterns
-const family1 = Childs({ name: 'John', alive: true })
-const family2 = Childs({
-  elder  : Fred,
-  younger: { name: 'Bob', alive: true }
-})
+// Fred.mutableKill()
+// Fred
 
 
-/*?*/
 
-const onlyOne = family2.chain(({younger}) => Childs(younger));
-onlyOne
+// const Brothers = Type`Brothers`({
+//   elder  : Boy,
+//   younger: Boy
+// })
+// const Childs = Union`Childs`({
+//   Single: Boy,
+//   Couple: Brothers,
+// })
 
-family1.type; /*?*/
-family2.type; /*?*/
-onlyOne.type; /*?*/
+// const rawData = { name: 'Fred' }
+// // Fred.equals(Boy({ name: 'Fred', alive: true })); /*?*/
+// // Fred.equals(rawData) /*?*/
 
-[...family1].map(([key,value])=>key)/*?*/
-//pattern-switch
-const actions = {
-  Single:({ value: child }) => child.name,
-  Couple:({ value: childs }) => [childs.elder.name, childs.younger.name]
-}
+// //transforms
+// // Fred.map(({ name }) => ({ name: name+'dy' }))/*?*/
 
-// family2.case(actions)/*?*/
-// family1.case(actions)/*?*/
+// // deep patterns
+// const family1 = Childs({ name: 'John', alive: true })
+// const family2 = Childs({
+//   elder  : Fred,
+//   younger: { name: 'Bob', alive: true }
+// })
+
+
+// family2 /*?*/
+
+// const onlyOne = family2.map((data) =>( console.log(data), data, family2));
+// onlyOne
+
+// family1.type; /*?*/
+// family2.type; /*?*/
+// onlyOne.type; /*?*/
+
+// [...family1].map(([key,value])=>key)/*?*/
+// //pattern-switch
+// const actions = {
+//   Single:({ value: child }) => child.name,
+//   Couple:({ value: childs }) => [childs.elder.name, childs.younger.name]
+// }
+
+// // family2.case(actions)/*?*/
+// // family1.case(actions)/*?*/
