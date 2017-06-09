@@ -56,6 +56,10 @@ const proofCase = {
   obj: (rule: mixed): boolean %checks => typeof rule === 'object',
 }
 
+/**
+ *
+ * @deprecated
+ */
 export const isSingleProof = (proof: *): boolean %checks =>
     //  proofCase.model(proof)
      proofCase.native(proof)

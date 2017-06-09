@@ -33,11 +33,11 @@ describe('example: Maybe type', () => {
 
       expect(() => {
         /** Because Nothing type *is Object*, just empty */
-        const nothing2 = Maybe.Nothing(null)
+        Maybe.Nothing(null)
       }).toThrow()
       expect(() => {
         /** Because Nothing type *is Object*, just empty */
-        const nothing3 = Maybe.Nothing()
+        Maybe.Nothing()
       }).toThrow()
       expect(nothing1).toHaveProperty('type', 'Nothing')
       expect(nothing1.typeName).toBe('Maybe')
@@ -60,9 +60,9 @@ describe('example: Maybe type', () => {
       const just2 = Maybe.Just({ })
       expect(just1).toHaveProperty('type', 'Just')
       expect(just1).toHaveProperty('typeName', 'Maybe')
-      console.log(just1)
-      console.log(Maybe)
-      console.log(Maybe.Nothing)
+      // console.log(just1)
+      // console.log(Maybe)
+      // console.log(Maybe.Nothing)
       expect(just1).toHaveProperty('value', { ok: 'ok' })
       expect(just2).toHaveProperty('type', 'Just')
       expect(just2).toHaveProperty('value', { })
@@ -146,13 +146,13 @@ describe('example: Maybe type', () => {
         Valid: { value: (val) => val != null },
         Null : { value: (val) => val == null }
       })
-      console.log(Nullable)
+      // console.log(Nullable)
       test('create Valid', () => {
         // const valid0 = Nullable('ok')
         const valid1 = Nullable({ value: 'ok' })
         const valid2 = Nullable({ value: {} })
-        console.log(valid1)
-        console.log(valid1.value)
+        // console.log(valid1)
+        // console.log(valid1.value)
         expect(valid1).toHaveProperty('value', 'ok')
         expect(valid2).toHaveProperty('value', {})
         expect(valid1).toHaveProperty('typeName', 'Nullable')
@@ -191,7 +191,7 @@ describe('example: Maybe type', () => {
         const valid1 = Nullable({ value: null })
         const valid2 = Nullable()
         const valid3 = Nullable(null)
-        console.log(valid1, Nullable)
+        // console.log(valid1, Nullable)
         expect(valid1).toBeDefined()
         expect(valid2).toBeDefined()
         expect(valid3).toBeDefined()
@@ -251,7 +251,7 @@ test('complex types', () => {
   expect(shape3).toHaveProperty('type', 'Circle')
   expect(shape3).toHaveProperty('typeName', 'Shape')
   expect(shape3).toHaveProperty('value.Center.y', 2)
-  console.log(shape3)
+  // console.log(shape3)
 })
 
 test('Ast example', () => {
@@ -269,14 +269,14 @@ test('Ast example', () => {
   const Equation = Type`Equation`({
     Lead: Ident,
     Sign,
-    Tail: Ident,
+    // Tail: Ident,
   })
 
   const result = Equation({
     Lead: { name: 'val' },
     Sign: { value: '=' },
-    Tail: Ident({ prefix: 'mod', name: 'ident' })
+    // Tail: Ident({ prefix: 'mod', name: 'ident' })
   })
-  console.log(result)
+  // console.log(result)
 })
 

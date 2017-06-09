@@ -1,5 +1,4 @@
 //@flow
-'use strict'
 
 /**
  * Union of types
@@ -10,8 +9,8 @@
 import { nonenumerable, readonly } from 'core-decorators'
 import { zip, difference, isEmpty, map, pick } from 'ramda'
 
-import verify, { isSingleProof, isSingleAlike } from './verify'
-import TypeFab, { Type, transformMonoInput } from './type'
+import { isSingleProof, isSingleAlike } from './verify'
+import { typeContainer } from './type'
 import isOrthogonal from './ortho'
 import { callableClass, rename, omitNew } from './decorators'
 import { typeMark } from './config'
@@ -37,12 +36,12 @@ const matchFabric =
 const makeSubtype = (arg: *, key: string, typeName: string) => {
   const withName = rename(key)
   if (isSingleProof(arg))
-    return withName(TypeFab(key, typeName, { value: arg }, true, {}))
+    return withName(typeContainer(key, typeName, { value: arg }, true, {}))
   if (isSingleAlike(arg))
-    return withName(TypeFab(key, typeName, arg, true, {}))
+    return withName(typeContainer(key, typeName, arg, true, {}))
   if (typeof arg !== 'object' || arg === null) throw new TypeError(`Wrong arg type, expect object got ${typeof arg}`)
 
-  return withName(TypeFab(key, typeName, arg, false, {}))
+  return withName(typeContainer(key, typeName, arg, false, {}))
 }
 
 /* eslint-disable */
@@ -123,6 +122,15 @@ const Union = ([typeName]: string[]) =>
     //   }
     //   return false
     // }
+    static is(val: *) {
+      for (const [key, pattern] of UnionClass) {
+        console.log(key, pattern, val)
+        if (pattern.is) {
+          if (pattern.is(val)) return true
+        } else if (typeof pattern === 'function' && pattern(val)) return true
+      }
+      return false
+    }
     is(val: *) {
       for (const [key, pattern] of this) {
         console.log(key, pattern, val)
@@ -133,12 +141,12 @@ const Union = ([typeName]: string[]) =>
       return false
     }
     toJSON() {
-      console.log(pick(keys, this))
+      // console.log(pick(keys, this))
       return pick(keys, this)/*?*/
     }
     static funcs = funcBlob
-    constructor(arg) {
-      console.log(arg)
+    constructor(arg: *) {
+      // console.log(arg)
       const data = arg && arg.value
         ? arg.value
         : arg
@@ -162,7 +170,7 @@ const Union = ([typeName]: string[]) =>
         }
       }
       if (!matched)
-        return new TypeError('Unmatched pattern')
+        throw new TypeError('Unmatched pattern')
 
       // Object.assign(this, subtypesMap)
     }

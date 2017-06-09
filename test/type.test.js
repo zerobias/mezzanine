@@ -1,94 +1,6 @@
 'use strict'
-import { equals } from 'ramda'
+import { T } from 'ramda'
 import { Type } from '../src'
-
-
-describe('simple type', () => {
-  test('Declare vith value; use with value', () => {
-    const Data = Type`Data`({
-      value: Object,
-    })
-    const data = Data({
-      value: {},
-    })
-    console.log(Data)
-    console.log(data)
-    expect(Data).toHaveProperty('type', 'Data')
-    expect(Data).not.toHaveProperty('value')
-    expect(typeof Data.ಠ_ಠ).toBe('symbol')
-    expect(data).toHaveProperty('type', 'Data')
-    expect(data).toHaveProperty('value', {})
-    expect(data.ಠ_ಠ).toBe(Data.ಠ_ಠ)
-
-    const Num = Type`Num`({
-      value: Number,
-    })
-    const num1 = Num({
-      value: 0,
-    })
-    expect(Num).toHaveProperty('type', 'Num')
-    expect(num1).toHaveProperty('type', 'Num')
-    expect(num1).toHaveProperty('value', 0)
-  })
-
-  test.skip('Declare vith value; use without', () => {
-    const Data = Type`Data`({
-      value: Object,
-    })
-    const data = Data({})
-    console.log(data)
-    expect(Data).toHaveProperty('type', 'Data')
-    expect(Data).not.toHaveProperty('value')
-    expect(data).toHaveProperty('type', 'Data')
-    expect(data).toHaveProperty('value', {})
-
-    const Num = Type`Num`({
-      value: Number,
-    })
-    const num1 = Num(0)
-    console.log(num1)
-    expect(Num).toHaveProperty('type', 'Num')
-    expect(num1).toHaveProperty('type', 'Num')
-    expect(num1).toHaveProperty('value', 0)
-  })
-  test.skip('Declare vithout value; use with it', () => {
-    const Data = Type`Data`(Object)
-    const data = Data({
-      value: {},
-    })
-    console.log(data)
-    expect(Data).toHaveProperty('type', 'Data')
-    expect(Data).not.toHaveProperty('value')
-    expect(data).toHaveProperty('type', 'Data')
-    expect(data).toHaveProperty('value', {})
-
-    const Num = Type`Num`(Number)
-    const num1 = Num({
-      value: 0,
-    })
-    console.log(num1)
-    expect(Num).toHaveProperty('type', 'Num')
-    expect(num1).toHaveProperty('type', 'Num')
-    expect(num1).toHaveProperty('value', 0)
-  })
-
-  test.skip('Declare vithout value; use without too', () => {
-    const Data = Type`Data`(Object)
-    const data = Data({})
-    console.log(data)
-    expect(Data).toHaveProperty('type', 'Data')
-    expect(Data).not.toHaveProperty('value')
-    expect(data).toHaveProperty('type', 'Data')
-    expect(data).toHaveProperty('value', {})
-
-    const Num = Type`Num`(Number)
-    const num1 = Num(0)
-    console.log(num1)
-    expect(Num).toHaveProperty('type', 'Num')
-    expect(num1).toHaveProperty('type', 'Num')
-    expect(num1).toHaveProperty('value', 0)
-  })
-})
 
 
 describe('disjoint fields', () => {
@@ -157,7 +69,43 @@ describe('disjoint fields', () => {
       })
     }).toThrow()
   })
+})
 
+
+describe('No nested wraps. Typed(Typed) => Typed', () => {
+
+  test('Mono type', () => {
+    const Num = Type`Num`({
+      value: Number,
+    })
+
+    const rawData = { value: 1 }
+    const num1 = Num(rawData)
+    const num2 = Num(num1)
+    // console.log(num1, num2, num2.isMono, typeof num2)
+    // const numControl = Num(rawData)
+    expect(Num.is(num1)).toBe(true)
+    expect(Num.is(num2)).toBe(true)
+    expect(num1.equals(num2)).toBe(true)
+    // expect(num1 === num2).toBe(true)
+    // expect(num1 === numControl).toBe(false)
+  })
+  test('Standart type', () => {
+    const Point = Type`Point`({
+      x: Number,
+      y: Number,
+    })
+
+    const rawData = { x: 1, y: 10 }
+    const point1 = Point(rawData)
+    const point2 = Point(point1)
+    // const pointControl = Point(rawData)
+    expect(Point.is(point1)).toBe(true)
+    expect(Point.is(point2)).toBe(true)
+    expect(point1.equals(point2)).toBe(true)
+    // expect(point1 === point2).toBe(true)
+    // expect(point1 === pointControl).toBe(false)
+  })
 })
 
 

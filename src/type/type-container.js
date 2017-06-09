@@ -1,91 +1,17 @@
 //@flow
-'use strict'
 
 import { nonenumerable, readonly, enumerable } from 'core-decorators'
-import { map, is, when, equals, pick, merge, anyPass, o } from 'ramda'
+import { map, equals, pick, merge } from 'ramda'
 
-import toFastProps from './to-fast-props'
-import verify, { isSingleProof } from './verify'
-import { omitNew, rename, methodTag } from './decorators'
-import { typeMark } from './config'
+import toFastProps from '../to-fast-props'
+import { omitNew, rename, methodTag } from '../decorators'
+import { typeMark } from '../config'
+import { isMezzanine, createBuilder, createPred, transformInput } from './descriptor'
 
-const canHaveProps = (val: *) =>
-     (typeof val === 'object' && val !== null)
-  || typeof val === 'function'
+import type { ContextMethod } from './index.h'
 
-export function transformMonoInput(input: *) {
-  if (canHaveProps(input) && input.value !== undefined)
-    return input
-  return { value: input }
-}
 
-// const normalizeMono = (input: *) =>
-//   !!input && !!input.value
-//     ? input.value
-//     : input
 
-/*const makeMonoType = (
-  name: string,
-  typeName: string,
-  desc: *
-) => {
-  const uniqMark = Symbol(name)
-
-  const check = validateMono(desc)
-
-  @toFastProps
-  @omitNew
-  @rename(name)
-  class Monotype {
-    //$ FlowIssue
-    [typeMark] = true
-    //$ FlowIssue
-    static ಠ_ಠ = uniqMark
-
-    //$ FlowIssue
-    static [typeMark] = true
-
-    @enumerable
-    static is(data: *, field: ?string): * {
-      return check(data, field)
-    }
-
-    @enumerable
-    is(data: *): * {
-      return check(data)
-    }
-    @nonenumerable
-    isMono: boolean = true
-    value: *
-    constructor(data: *, field: ?string) {
-      const val = normalizeMono(data)
-      if (!check(val, field))  {
-        throw new TypeError(`Unsafe pattern mismatch`)
-      }
-      this.value = val
-    }
-
-    static get keys(): string[] {
-      return ['value']
-    }
-
-    //$ FlowIssue
-    * [Symbol.iterator]() {
-      yield* this.keys
-    }
-  }
-
-  return Monotype
-}*/
-
-const isDirectlyEquals: (val: *) => boolean = o(anyPass, map(is), [
-  String, Number, Boolean
-])
-
-const doAtomicEqual = when(
-  isDirectlyEquals,
-  equals
-)
 
 interface TypeRecord<Schema>{
   +ಠ_ಠ: Symbol,
@@ -94,22 +20,24 @@ interface TypeRecord<Schema>{
   toJSON(): Schema,
 }
 
-type ContextMethod<T, F> = (ctx: T) => F
-
 const makeContainer = <F>(
   name: string,
   typeName: string,
-  descriptor: *,
-  isMono: boolean,
+  descriptor: mixed,
+  isMonoOld: boolean,
   func: {[name: string]: ContextMethod<*, F>}
 ) => {
-
-  const desc = map(doAtomicEqual, descriptor)
-
+  const desc: * = typeof descriptor !== 'object'
+    ? { value: descriptor }
+    : descriptor
   const keys = Object.keys(desc)
+  const pred = createPred(desc)
+  const isMono = keys.length === 1 && keys[0] === 'value'
   // const values = Object.values(desc)
   // const subtypes = zip(keys, values)
   const uniqMark = Symbol(name)
+
+  // const plainCheck =
 
   // @toFastProps
   @omitNew
@@ -134,30 +62,18 @@ const makeContainer = <F>(
     @enumerable
     @methodTag`is${name}`
     static is(val: *): boolean {
-      //eslint-disable-next-line
-      if (!!val) {
-        if (val.ಠ_ಠ === uniqMark) return true
-        if (!!val.value && val.value.ಠ_ಠ === uniqMark) return true
-      }
-
-      const data = isMono
-        ? transformMonoInput(val)
-        : val
-      return verify(desc, data)
+      const data = transformInput(val, isMono)
+      if (data == null) return false
+      if (isMono && isMezzanine(data.value) && data.value.ಠ_ಠ === uniqMark) return true
+      return pred(data)
     }
 
     @methodTag`is${name}`
     is(val: *): boolean {
-      // if (!!val && val.ಠ_ಠ === uniqMark) return true
-      //eslint-disable-next-line
-      if (!!val) {
-        if (val.ಠ_ಠ === uniqMark) return true
-        if (!!val.value && val.value.ಠ_ಠ === uniqMark) return true
-      }
-      const data = isMono
-        ? transformMonoInput(val)
-        : val
-      return verify(desc, data)
+      const data = transformInput(val, isMono)
+      if (data == null) return false
+      if (isMono && isMezzanine(data.value) && data.value.ಠ_ಠ === uniqMark) return true
+      return pred(data)
     }
 
     //$FlowIssue
@@ -270,27 +186,23 @@ const makeContainer = <F>(
     constructor(obj: *) {
       //$ FlowIssue
       // this.toJSON = this.toJSON.bind(this)
-      const data = isMono
-        ? transformMonoInput(obj)
-        : obj
+      const data = transformInput(obj, isMono)
       // isMono && console.log('isMono', obj, data)
-
-      if (!!data && data.ಠ_ಠ === uniqMark) return data
-      if (!!data && !!data.value && data.value.ಠ_ಠ === uniqMark) return data
-
-      if (!RecordStatic.is(data) && !RecordStatic.is(obj))  {
-        console.log(RecordStatic, obj, desc)
-        console.log(RecordStatic.is(obj), obj)
-        throw new TypeError(`Unsafe pattern mismatch ${name} ${Object.keys(obj)} ${Object.values(obj)}`)
+      if (data == null) {
+        throw new TypeError(`${name}{isMono: ${isMono}}: No value recieved`)
       }
+      if (isMono && isMezzanine(data.value) && data.value.ಠ_ಠ === uniqMark) return data.value
+
+      if (!pred(data))  {
+        console.log(RecordStatic, obj, desc)
+        console.log(pred(obj), obj)
+        throw new TypeError(`${name}{isMono: ${isMono}}: Unsafe pattern mismatch\nKeys: ${Object.keys(data).toString()}\nValues: ${Object.values(data).toString()}`)
+      }
+      const dataResult = createBuilder(desc, data)
       for (const key of keys) {
-        const rule = desc[key]
-        const property = data[key]
         // console.log(rule, property, (rule && rule.ಠ_ಠ))
         //$FlowIssue
-        this[key] = (rule && rule.ಠ_ಠ)
-          ? rule(property)
-          : property
+        this[key] = dataResult[key]
         // console.log(this[key])
       }
       funcDesc(this)
@@ -310,38 +222,6 @@ const makeContainer = <F>(
   return Record
 }
 
-/**
- * Make single type which
- * implements `fantasy-land` spec:
- * - Semigroup
- * - Setoid
- * - Functor
- * - Apply
- * - Applicative
- * - Chain
- * - Monad
- * - Extend
- * - Comonad
- *
- * @example
- * Record`User`({ id: Number, name: String })
- */
-export function Type([typeName]: string[]) {
-  return <+T: *, +P, +F>(desc: {+[name: string]: P}, func: {[name: string]: ContextMethod<T, F>} = {}) => {
-    const isMono = isSingleProof(desc)
-    return makeContainer(typeName, typeName, desc, isMono, func)
-  }
-}
+
 
 export default makeContainer
-
-// const Point = Type`Point`({
-//   x: Number,
-//   y: Number,
-// })
-
-// const data1 = { x: 1, y: 10 }
-// const point1 = Point(data1)
-// const point2 = Point(data1)
-
-// point1.equals(point2)
