@@ -1,7 +1,7 @@
 //@flow
 
-import { map, is, when, equals, isNil } from 'ramda'
-import { ensureProp } from './fixtures'
+import { map, is, isNil } from 'ramda'
+import { ensureProp, isObject, isMezzanine } from './fixtures'
 
 const isDirectlyEquals = (val: mixed): boolean %checks =>
      ['string', 'number', 'boolean'].indexOf(typeof val) !== -1
@@ -9,19 +9,11 @@ const isCheckByType = (val: mixed): boolean %checks =>
      val === String
   || val === Number
   || val === Boolean
-// const doAtomicEqual = when(
-//   isDirectlyEquals,
-//   equals
-// )
+  || val === Function
+  || val === Array
 
-const isObject = (obj: mixed): boolean %checks =>
-     typeof obj === 'object'
-  && obj !== null
 
-export const isMezzanine = (obj: mixed): boolean %checks =>
-     (  typeof obj === 'function'
-     || isObject(obj))
-  && obj.ಠ_ಠ !== undefined
+
 
 export const createPred = (val: $FlowIssue): Pred => {
   switch (true) {

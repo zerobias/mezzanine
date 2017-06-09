@@ -21,3 +21,21 @@ export const ensureProp = (key: string, obj: mixed): boolean %checks =>
        obj[key] !== undefined
     || Object.keys(obj).indexOf(key) !== -1
   )
+
+export const isObject = (obj: mixed): boolean %checks =>
+     typeof obj === 'object'
+  && obj !== null
+
+export const isMezzanine = (obj: mixed): boolean %checks =>
+     (  typeof obj === 'function'
+     || isObject(obj))
+  && obj.ಠ_ಠ !== undefined
+
+export const toJSON = (ctx: *) => {
+  if (!isMezzanine(ctx)) return ctx
+  if (ctx.isMono) return toJSON(ctx.value)
+  const result: * = {}
+  for (const [key, value] of ctx)
+    result[key] = toJSON(value)
+  return result
+}

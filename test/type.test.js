@@ -60,7 +60,17 @@ describe('equals', () => {
   })
 })
 
-
+test('Arrays', () => {
+  const List = Type`List`(Array, {
+    isEmpty: (ctx) => ctx.value.length === 0
+  })
+  const val1 = List([0, 1])
+  const val2 = List([])
+  expect(val1.value).toEqual([0, 1])
+  expect(val1.isEmpty).toBe(false)
+  expect(val2.value).toEqual([])
+  expect(val2.isEmpty).toBe(true)
+})
 
 test('Any type', () => {
   const Any = Type`Any`(T)
