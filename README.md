@@ -25,6 +25,8 @@ Object classes, described with rules and linked methods.
 ## Usage
 
 ```js
+import { Type, Union } from 'mezzanine'
+
 const Point = Type`Point`({
   x: Number,
   y: Number,
@@ -58,7 +60,76 @@ shape1.type // => Line
 ### syntaxShockMode = off
 You can also use library without backtick tags, with classic parenthesis.
 ```js
+import { Type } from 'mezzanine'
 const Point = Type('Point')({ x: Number, y: Number })
+```
+
+## Methods & computed properties
+
+Second argument in the constructor is function map, object with *linked methods*, which apply and attach to instances on create
+```js
+import { Type } from 'mezzanine'
+
+const Point = Type`Point`({
+  x: Number,
+  y: Number,
+}, {
+  concat:
+    (ctx) => // context, works as `this`
+      (point) => // can be another Point instance or plain object
+        Point({
+          x: ctx.x + point.x,
+          y: ctx.y + point.y
+        })
+})
+
+const Rectangle = Type`Rectangle`({
+  root  : Point,
+  width : Number,
+  height: Number
+}, {
+  area: ctx => ctx.width * ctx.height, //Will be computed property
+  endPoint(ctx) {
+    return ctx.root.concat({ // Use Point .concat method
+      x: ctx.width,
+      y: ctx.height
+    })
+  }
+})
+
+const rect = Rectangle({
+  root: { x: 1, y: 4 },
+  width: 10,
+  height: 5
+})
+/*
+  => {
+    type    : 'Rectangle',
+    root    : { type: 'Point', x: 1, y: 4 },
+    width   : 10,
+    height  : 5,
+    area    : 50,
+    endPoint: { type: 'Point', x: 11, y: 9 }
+  }
+*/
+
+```
+
+## Iterable types
+You can define iterable types with `Symbol.iterator`. Another symbols, well-known or not, are also avialable as method names
+```js
+const Iterable = Type`Iterable`(Array, {
+  length: ({ value }) => value.length,
+  [Symbol.iterator](ctx) {
+    return function* () {
+      const length = ctx.length
+      for (let i = 0; i < length; i++)
+        yield (ctx.value[i])
+    }
+  },
+})
+const result = [...Iterable(['a', 'b', 'c'])]
+// => ['a', 'b', 'c']
 ```
 
 ## Data types
