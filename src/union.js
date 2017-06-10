@@ -7,7 +7,7 @@
  */
 
 import { nonenumerable, readonly } from 'core-decorators'
-import { zip, difference, isEmpty, map, pick } from 'ramda'
+import { zip, difference, isEmpty, values as getValues } from 'ramda'
 
 import { isSingleProof, isSingleAlike } from './verify'
 import { typeContainer } from './type'
@@ -44,7 +44,7 @@ const Union = ([typeName]: string[]) =>
   const uniqMark = Symbol(typeName)
 
   const keys = Object.keys(desc)
-  const values = Object.values(desc)
+  const values = getValues(desc)
   const subtypes = zip(keys, values)
   const subtypesMap = {}
   for (const [key, arg] of subtypes)

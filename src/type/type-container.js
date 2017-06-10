@@ -1,7 +1,7 @@
 //@flow
 
 import { nonenumerable, readonly, enumerable } from 'core-decorators'
-import { map, equals, pick, merge } from 'ramda'
+import { map, equals, values, merge } from 'ramda'
 
 import toFastProps from '../to-fast-props'
 import { omitNew, rename, methodTag, copyProps } from '../decorators'
@@ -34,7 +34,7 @@ const makeContainer = <F>(
   const keys = Object.keys(desc)
   const pred = createPred(desc)
   const isMono = keys.length === 1 && keys[0] === 'value'
-  // const values = Object.values(desc)
+  // const values = values(desc)
   // const subtypes = zip(keys, values)
   const uniqMark = Symbol(name)
 
@@ -205,7 +205,7 @@ const makeContainer = <F>(
       if (!pred(data))  {
         // console.log(RecordStatic, obj, desc)
         // console.log(pred(obj), obj)
-        throw new TypeError(`${name}{isMono: ${isMono}}: Unsafe pattern mismatch\nKeys: ${Object.keys(data).toString()}\nValues: ${Object.values(data).toString()}`)
+        throw new TypeError(`${name}{isMono: ${isMono}}: Unsafe pattern mismatch\nKeys: ${Object.keys(data).toString()}\nValues: ${values(data).toString()}`)
       }
       const dataResult = createBuilder(desc, data)
       for (const key of keys) {
