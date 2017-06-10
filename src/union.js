@@ -12,7 +12,7 @@ import { zip, difference, isEmpty, map, pick } from 'ramda'
 import { isSingleProof, isSingleAlike } from './verify'
 import { typeContainer } from './type'
 import isOrthogonal from './ortho'
-import { callableClass, rename, omitNew } from './decorators'
+import { copyProps, rename, omitNew } from './decorators'
 import { typeMark } from './config'
 import { isMezzanine } from './type/fixtures'
 
@@ -176,8 +176,16 @@ const Union = ([typeName]: string[]) =>
     map(mapFunction: <T>(val: T) => T) {
       return UnionClass(this.chain(mapFunction))
     }
-    chain(chainFunction: <T>(val: T) => Record) {
+    chain(chainFunction: (val: *) => UnionClass) {
       return chainFunction(this.toJSON())
+    }
+    static contramap<T, S>(prependFunction: (...vals: S[]) => T) {
+      function preprocessed(...data: S[]) {
+        const preprocessResult = prependFunction(...data)
+        return UnionClass(preprocessResult)
+      }
+      copyProps(UnionClass, preprocessed)
+      return preprocessed
     }
     @nonenumerable
     case(cases: {[string]: (val: *) => *}) {

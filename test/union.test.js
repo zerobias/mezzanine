@@ -210,12 +210,12 @@ test('complex types', () => {
     y: Number,
   })
   const Line = Type`Line`({
-    Start: Point,
-    End  : Point,
+    start: Point,
+    end  : Point,
   })
   const Circle = Type`Circle`({
-    Center: Point,
-    Radius: Number,
+    center: Point,
+    radius: Number,
   })
   const Shape = Union`Shape`({
     Line,
@@ -225,32 +225,28 @@ test('complex types', () => {
   const point2 = Point({ x: 0, y: 10 })
 
   const shape1 = Shape({
-    Start: { x: 0, y: 0 },
-    End  : { x: 1, y: 0 },
+    start: { x: 0, y: 0 },
+    end  : { x: 1, y: 0 },
   })
   expect(shape1).toHaveProperty('type', 'Line')
   expect(shape1).toHaveProperty('typeName', 'Shape')
-  expect(shape1).toHaveProperty('value.End.x', 1)
-  const circle = Circle({
-    Center: point1,
-    Radius: 1,
-  })
+  expect(shape1).toHaveProperty('value.end.x', 1)
   const shape2 = Shape({
-    Center: point1,
-    Radius: 1,
+    center: point1,
+    radius: 1,
   })
   expect(Point.is({ x: 1, y: 2 })).toBe(true)
   expect(Point.is(point1)).toBe(true)
   expect(shape2).toHaveProperty('type', 'Circle')
   expect(shape2).toHaveProperty('typeName', 'Shape')
-  expect(shape2).toHaveProperty('value.Center.y', 2)
+  expect(shape2).toHaveProperty('value.center.y', 2)
   const shape3 = Shape({
-    Center: { x: 1, y: 2 },
-    Radius: 1,
+    center: { x: 1, y: 2 },
+    radius: 1,
   })
   expect(shape3).toHaveProperty('type', 'Circle')
   expect(shape3).toHaveProperty('typeName', 'Shape')
-  expect(shape3).toHaveProperty('value.Center.y', 2)
+  expect(shape3).toHaveProperty('value.center.y', 2)
   // console.log(shape3)
 })
 
@@ -269,13 +265,13 @@ test('Ast example', () => {
   const Equation = Type`Equation`({
     Lead: Ident,
     Sign,
-    // Tail: Ident,
+    Tail: Ident,
   })
 
   const result = Equation({
     Lead: { name: 'val' },
-    Sign: { value: '=' },
-    // Tail: Ident({ prefix: 'mod', name: 'ident' })
+    Sign: '=',
+    Tail: Ident({ prefix: 'mod', name: 'ident' })
   })
   // console.log(result)
 })

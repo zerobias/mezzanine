@@ -39,6 +39,21 @@ describe('No nested wraps. Typed(Typed) => Typed', () => {
 })
 
 
+test('Call without backticks', () => {
+  const Point = Type('Point')({
+    x: Number,
+    y: Number,
+  })
+
+  const point = Point({ x: 2, y: 4 })
+
+  expect(Point).toHaveProperty('type', 'Point')
+  expect(point).toHaveProperty('type', 'Point')
+  expect(point.x).toBe(2)
+  expect(point.y).toBe(4)
+})
+
+
 describe('equals', () => {
   const Point = Type`Point`({
     x: Number,

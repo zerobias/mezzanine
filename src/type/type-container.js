@@ -4,7 +4,7 @@ import { nonenumerable, readonly, enumerable } from 'core-decorators'
 import { map, equals, pick, merge } from 'ramda'
 
 import toFastProps from '../to-fast-props'
-import { omitNew, rename, methodTag } from '../decorators'
+import { omitNew, rename, methodTag, copyProps } from '../decorators'
 import { isMezzanine, toJSON } from './fixtures'
 import { typeMark } from '../config'
 import { createBuilder, createPred, transformInput } from './descriptor'
@@ -125,6 +125,14 @@ const makeContainer = <F>(
 
     static equals = (a: Record, b: Record): boolean => a.equals(b)
 
+    static contramap<T, S>(prependFunction: (...vals: S[]) => T) {
+      function preprocessed(...data: S[]) {
+        const preprocessResult = prependFunction(...data)
+        return RecordStatic(preprocessResult)
+      }
+      copyProps(RecordStatic, preprocessed)
+      return preprocessed
+    }
     //$FlowIssue
     static ['fantasy-land/equals'] = (a: Record, b: Record): boolean => a.equals(b)
 
@@ -214,10 +222,15 @@ const makeContainer = <F>(
 
   const RecordStatic = Record
   const funcDesc = ctx => {
-    const funcMap = map(fn => ({
+    const mapper = fn => ({
       enumerable: false,
       value     : fn(ctx, RecordStatic),
-    }), func)
+    })
+    const funcMap = map(mapper, func)
+    Object
+      .getOwnPropertySymbols(func)
+      .forEach(symb => funcMap[symb] = mapper(func[symb]))
+
     Object.defineProperties(ctx, funcMap)
   }
   return Record
