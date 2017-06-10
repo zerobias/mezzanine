@@ -1,5 +1,5 @@
 'use strict'
-import verify, { Shape } from '../src/verify'
+import verify from '../src/verify'
 
 // {
 //   Ack     : { id: Number, data: Object },
@@ -97,25 +97,4 @@ describe('validate function type', () => {
     expect(verify(type, )).toBe(true)
   })
 
-})
-
-test.skip('inner validation type', () => {
-  const typeInner = Shape({ wait: Number })
-  const type = Shape({ id: Number, child: typeInner })
-  const resu = type.toJSON()
-  // console.log(typeInner)
-  typeInner
-  const iter = [...type]
-  iter
-  const dataValid = { id: 0, child: { wait: 0 } }
-  const dataInvalid1 = { id: 0 }
-  const dataInvalid2 = { id: 0, child: {} }
-  const dataInvalid3 = { id: 0, child: { wait: '0' } }
-  const dataInvalid4 = { id: 0, child: null }
-
-  expect(verify(type, dataValid)).toBe(true)
-  expect(verify(type, dataInvalid1)).toBe(false)
-  expect(verify(type, dataInvalid2)).toBe(false)
-  expect(verify(type, dataInvalid3)).toBe(false)
-  expect(verify(type, dataInvalid4)).toBe(false)
 })

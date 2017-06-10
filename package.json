@@ -7,7 +7,7 @@
   "esnext": "es/index.js",
   "scripts": {
     "clean": "rimraf lib/ && rimraf es/",
-    "test": "cross-env BABEL_ENV=jest jest --config jest.json",
+    "test": "cross-env BABEL_ENV=test jest --config jest.json",
     "build:cjs": "cross-env BABEL_ENV=commonjs babel src/ -d lib -s",
     "build:es": "babel src/ -d es -s",
     "build": "npm run build:cjs && npm run build:es",
