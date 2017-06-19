@@ -13,7 +13,7 @@ $ npm install --save mezzanine
 
 ## Motivation
 
-### Principies:
+### Principles:
 
 -  No `this`
 -  No `new`
@@ -116,7 +116,7 @@ const rect = Rectangle({
 ```
 
 ## Iterable types
-You can define iterable types with `Symbol.iterator`. Another symbols, well-known or not, are also avialable as method names
+You can define iterable types with `Symbol.iterator`. Another symbols, well-known or not, are also available as method names
 ```js
 const Iterable = Type`Iterable`(Array, {
   length: ({ value }) => value.length,
@@ -188,7 +188,7 @@ const maybeName =
 // => BOB
 ```
 What happens if we select id that not exists? Nothing. The whole chain will *safely* skip incorrect values without changes
-### Ramda suport
+### Ramda support
 ```js
 import { pipe, map, filter, chain } from 'ramda'
 import { Maybe } from 'mezzanine'
@@ -209,7 +209,7 @@ readName(NaN)(users) // => { type: 'Nothing', value: undefined }
 
 
 
-## Recipies
+## Recipes
 
 ### `Any` type
 ```js
