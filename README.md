@@ -58,7 +58,7 @@ shape1.type // => Line
 ```
 
 ### syntaxShockMode = off
-You can also use library without backtick tags, with classic parenthesis.
+You can also use the library without backtick tags, with classic parentheses.
 ```js
 import { Type } from 'mezzanine'
 const Point = Type('Point')({ x: Number, y: Number })
@@ -66,7 +66,7 @@ const Point = Type('Point')({ x: Number, y: Number })
 
 ## Methods & computed properties
 
-Second argument in the constructor is function map, object with *linked methods*, which apply and attach to instances on create
+Second argument in the constructor is the function map, object with *linked methods*, which apply and attach to instances on create
 ```js
 import { Type } from 'mezzanine'
 
@@ -134,7 +134,7 @@ const result = [...Iterable(['a', 'b', 'c'])]
 
 ## Data types
 
-Mezzanine has some built-it object classes.
+Mezzanine has some built-in object classes.
 
 ### Tuple
 ```js
@@ -187,7 +187,7 @@ const maybeName =
     .toJSON()
 // => BOB
 ```
-What happens if we select id that not exists? Nothing. The whole chain will *safely* skip incorrect values without changes
+What happens if we select an id that doesn't exist? Nothing. The whole chain will *safely* skip incorrect values without changes
 ### Ramda support
 ```js
 import { pipe, map, filter, chain } from 'ramda'
