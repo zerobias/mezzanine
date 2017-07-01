@@ -11,6 +11,7 @@ import { type Pred } from './descriptor'
 import { type ContextMethod } from './index.h'
 import { fantasyStatic, fantasyMethods } from './fantasy-land'
 import { addLazyProperty, addProperties } from '../utils/props'
+
 export type Descript =
   | typeof String
   | typeof Number
@@ -23,6 +24,7 @@ export type Descript =
   | Pred
   | TypeRecord<Descript>
   | {[id: string]: Descript }
+
 export interface TypeRecord<Schema: Descript> {
   +ಠ_ಠ: Symbol,
   +keys: string[],
@@ -36,6 +38,7 @@ export interface TypeRecord<Schema: Descript> {
 // export type FantasyMethods<Schema: Descript> = {
 //   equals(ctx: TypeRecord<Schema>, Record: any): $PropertyType<TypeRecord<Schema>, 'equals'>
 // }
+
 function isType(pred: Pred, uniqMark: Symbol, isMono: boolean) {
   return function checkIsType(val: any): boolean {
     const data = transformInput(val, isMono)
@@ -64,7 +67,6 @@ const makeContainer = <F>(
   const uniqMark = Symbol(name)
   const checkIs = isType(pred, uniqMark, isMono)
   function RecordFn<Type: Descript>(obj: any) {
-    console.log(obj)
     //$FlowIssue
     if (new.target == null)
       return new RecordFn(obj)
@@ -88,7 +90,7 @@ const makeContainer = <F>(
     // addProperties(mainProps)(RecordFn, RecordFn)
 
     const dataResult = createBuilder(desc, data)
-    console.log(data, obj, dataResult)
+    // console.log(data, obj, dataResult)
     for (const key of keys) {
       // console.log(rule, property, (rule && rule.ಠ_ಠ))
       //$FlowIssue
@@ -178,25 +180,14 @@ function getUserMethods(func: *) {
   const methodMap = fromPairs(pairs)
   return addProperties(methodMap)
 }
-// function injectFantasy<O: Function, T>(name: string, method: (O, Class<O>) => T) {
-//   return (object: O, enumerable?: boolean) => {
-//     addLazyProperty(object, name, method, enumerable)
-//     addLazyProperty(object, `fantasy-land/${name}`, method, enumerable)
-//   }
-// }
-//$FlowIssue
+
 const prepareFl = pipe(
   toPairs,
   map(([key, value]) => [key, { value, enumerable: true, writable: true, inject: true }]),
   arr => arr.concat(arr.map(([name, value]) => [`fantasy-land/${name}`, value])),
-  fromPairs)
-// console.log(fantasyMethods)
-// console.log(fantasyStatic)
-const fantasyInstance = addProperties(prepareFl(fantasyMethods))
-const fantasyOnClass = addProperties(prepareFl(fantasyStatic))
-// console.log(fantasyMethods)
-// const vl = map(value => ({ value, enumerable: true, writable: true, inject: true }))
-// console.log(vl(fantasyMethods))
-// console.log(prepareFl(fantasyMethods))
-// console.log(prepareFl(fantasyStatic))
+  fromPairs,
+  addProperties)
+
+const fantasyInstance = prepareFl(fantasyMethods)
+const fantasyOnClass = prepareFl(fantasyStatic)
 export default makeContainer

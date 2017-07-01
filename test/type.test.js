@@ -78,13 +78,10 @@ describe('equals', () => {
 test('Arrays', () => {
   const List = Type`List`(Array, {
     isEmpty(ctx) {
-      console.log(ctx)
       return ctx.value.length === 0
     }
   })
-  console.log(List)
   const val1 = List([0, 1])
-  console.log(val1)
   const val2 = List([])
   expect(val1.value).toEqual([0, 1])
   expect(val1.isEmpty).toBe(false)
@@ -248,7 +245,9 @@ describe('instanceof behavior', () => {
   test('Pattern-matching check', () => {
 
     const check = { x: 2, y: 0 } instanceof Point
+    const check1 = { x: 2, y: '0' } instanceof Point
 
     expect(check).toBeTruthy()
+    expect(!check1).toBeTruthy()
   })
 })
