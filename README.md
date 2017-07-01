@@ -31,17 +31,16 @@ const Point = Type`Point`({
   x: Number,
   y: Number,
 })
-const Line = Type`Line`({
-  start: Point,
-  end  : Point,
-})
-const Circle = Type`Circle`({
-  center: Point,
-  radius: Number,
-})
+
 const Shape = Union`Shape`({
-  Line,
-  Circle,
+  Line: {
+    start: Point,
+    end  : Point,
+  },
+  Circle: {
+    center: Point,
+    radius: Number,
+  },
 })
 const point1 = Point({ x: 1, y: 2 })
 const point2 = Point({ x: 0, y: 10 })

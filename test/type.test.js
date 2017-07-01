@@ -77,9 +77,14 @@ describe('equals', () => {
 
 test('Arrays', () => {
   const List = Type`List`(Array, {
-    isEmpty: (ctx) => ctx.value.length === 0
+    isEmpty(ctx) {
+      console.log(ctx)
+      return ctx.value.length === 0
+    }
   })
+  console.log(List)
   const val1 = List([0, 1])
+  console.log(val1)
   const val2 = List([])
   expect(val1.value).toEqual([0, 1])
   expect(val1.isEmpty).toBe(false)
@@ -219,5 +224,31 @@ describe('disjoint fields', () => {
         data  : {},
       })
     }).toThrow()
+  })
+})
+
+describe('instanceof behavior', () => {
+
+  const Point = Type`Point`({
+    x: Number,
+    y: Number,
+  })
+
+  const rawData = { x: 1, y: 10 }
+  const point1 = Point(rawData)
+
+  test('Usual instanceof', () => {
+
+    const check = point1 instanceof Point
+
+    expect(check).toBeTruthy()
+  })
+
+
+  test('Pattern-matching check', () => {
+
+    const check = { x: 2, y: 0 } instanceof Point
+
+    expect(check).toBeTruthy()
   })
 })

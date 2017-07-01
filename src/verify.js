@@ -95,6 +95,7 @@ const canAccessKeys = (data: *): %checks =>
 
 function validate(proof: Proof, data: mixed, dataKey: ?string): boolean {
   if (proofCase.native(proof)) return is(proof, data)
+  //$FlowIssue
   if (proofCase.model(proof)) return proof.is(data)
   if (typeof proof === 'function') return proof(data, dataKey)
   if (proof == null) return false
@@ -106,6 +107,7 @@ function validate(proof: Proof, data: mixed, dataKey: ?string): boolean {
     if (typeKeys.length === 0) return true
     for (const typeKey of typeKeys) {
       const rule: Proof = tProof[typeKey]
+      //$FlowIssue
       const property = data[typeKey]
       const result = validate(rule, property, typeKey)
       if (!result) return false

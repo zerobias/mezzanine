@@ -21,17 +21,17 @@ export type Descript =
   | number
   | boolean
   | Pred
-  | TypeRecord<Descript>
+  | TypeRecord
   | {[id: string]: Descript }
-export interface TypeRecord<Schema: Descript> {
+export interface TypeRecord {
   +ಠ_ಠ: Symbol,
   +keys: string[],
   is(val: mixed): boolean,
   toJSON(): Schema,
-  // equals<R, D>(val: R | D | mixed): boolean,
-  // concat<R, D>(val: R | D): TypeRecord,
-  // extract(): Schema,
-  // ap<R>(m: R): R, //???
+  equals>(val: R | D | mixed): boolean,
+  concat>(val: R | D): TypeRecord,
+  extract(): Schema,
+  ap>(m: R): R, //???
 }
 // export type FantasyMethods<Schema: Descript> = {
 //   equals(ctx: TypeRecord<Schema>, Record: any): $PropertyType<TypeRecord<Schema>, 'equals'>
@@ -64,7 +64,6 @@ const makeContainer = <F>(
   const uniqMark = Symbol(name)
   const checkIs = isType(pred, uniqMark, isMono)
   function RecordFn<Type: Descript>(obj: any) {
-    console.log(obj)
     //$FlowIssue
     if (new.target == null)
       return new RecordFn(obj)
@@ -86,24 +85,27 @@ const makeContainer = <F>(
     // getUserMethods(func)(this, RecordFn)
     // addProperties(staticProps)(RecordFn, RecordFn)
     // addProperties(mainProps)(RecordFn, RecordFn)
-
+    addProperties(mainProps)(this, RecordFn)
+    addProperties(instProps)(this, RecordFn)
+    // fantasyOnClass(RecordFn, RecordFn)
+    fantasyInstance(this, RecordFn)
+    userMeth(this, RecordFn)
     const dataResult = createBuilder(desc, data)
-    console.log(data, obj, dataResult)
     for (const key of keys) {
       // console.log(rule, property, (rule && rule.ಠ_ಠ))
       //$FlowIssue
       this[key] = dataResult[key]
       // console.log(this[key])
     }
+    // funcDesc(this)
+    // getUserMethods(func)(this, RecordFn)
+    // addProperties(staticProps)(RecordFn, RecordFn)
+    // addProperties(mainProps)(RecordFn, RecordFn)
     addProperties(mainProps)(this, RecordFn)
     addProperties(instProps)(this, RecordFn)
     // fantasyOnClass(RecordFn, RecordFn)
     fantasyInstance(this, RecordFn)
     userMeth(this, RecordFn)
-    // funcDesc(this)
-    // getUserMethods(func)(this, RecordFn)
-    // addProperties(staticProps)(RecordFn, RecordFn)
-    // addProperties(mainProps)(RecordFn, RecordFn)
     toFastProps(this)
   }
   const mainProps = {
@@ -166,7 +168,7 @@ const makeContainer = <F>(
   addProperties(instProps)(RecordFn.prototype, RecordFn)
   fantasyOnClass(RecordFn, RecordFn)
   fantasyInstance(RecordFn.prototype, RecordFn)
-  // userMeth(RecordFn.prototype, RecordFn)
+  userMeth(RecordFn.prototype, RecordFn)
   // console.log(RecordFn.prototype)
   return RecordFn
 }
@@ -186,17 +188,23 @@ function getUserMethods(func: *) {
 // }
 //$FlowIssue
 const prepareFl = pipe(
+  map(value => ({ value, enumerable: true, writable: true, inject: true })),
+  e => {
+    console.log('ppp', e)
+    return e
+  },
   toPairs,
-  map(([key, value]) => [key, { value, enumerable: true, writable: true, inject: true }]),
+  // map(([name, value]) => [[name, value], [`fantasy-land/${name}`, value]]),
   arr => arr.concat(arr.map(([name, value]) => [`fantasy-land/${name}`, value])),
+  e=> {
+    console.log('eee', ...e)
+    return e
+  },
   fromPairs)
-// console.log(fantasyMethods)
-// console.log(fantasyStatic)
+console.log(fantasyMethods)
+console.log(fantasyStatic)
 const fantasyInstance = addProperties(prepareFl(fantasyMethods))
 const fantasyOnClass = addProperties(prepareFl(fantasyStatic))
-// console.log(fantasyMethods)
-// const vl = map(value => ({ value, enumerable: true, writable: true, inject: true }))
-// console.log(vl(fantasyMethods))
-// console.log(prepareFl(fantasyMethods))
-// console.log(prepareFl(fantasyStatic))
+console.log(prepareFl(fantasyMethods))
+console.log(prepareFl(fantasyStatic))
 export default makeContainer

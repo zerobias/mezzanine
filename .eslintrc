@@ -4,7 +4,8 @@
     "ecmaVersion": 8,
     "ecmaFeatures": {
       "experimentalObjectRestSpread": true
-    }
+    },
+    "sourceType": "module"
   },
   "extends": [
     "eslint:recommended",
@@ -33,6 +34,7 @@
       0,
       "bool"
     ],
+    "flowtype/generic-spacing": "off",
     // "strict"               : "error",
     "no-console"           : "off",
     "no-cond-assign"       : "warn",
