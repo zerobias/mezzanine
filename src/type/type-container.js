@@ -1,16 +1,15 @@
 //@flow
-import { nonenumerable, readonly, enumerable } from 'core-decorators'
 
-import { map, equals, values, unnest, fromPairs, toPairs, pipe, apply, evolve } from 'ramda'
+import { map, values, fromPairs, toPairs, pipe } from 'ramda'
 import toFastProps from '../to-fast-props'
-import { omitNew, rename, methodTag, copyProps } from '../decorators'
 import { isMezzanine, toJSON } from './fixtures'
 import { typeMark } from '../config'
 import { createBuilder, createPred, transformInput } from './descriptor'
 import { type Pred } from './descriptor'
 import { type ContextMethod } from './index.h'
 import { fantasyStatic, fantasyMethods } from './fantasy-land'
-import { addLazyProperty, addProperties } from '../utils/props'
+import { addProperties } from '../utils/props'
+import { type FieldList } from '../utils/props'
 
 export type Descript =
   | typeof String
@@ -35,9 +34,6 @@ export interface TypeRecord<Schema: Descript> {
   // extract(): Schema,
   // ap<R>(m: R): R, //???
 }
-// export type FantasyMethods<Schema: Descript> = {
-//   equals(ctx: TypeRecord<Schema>, Record: any): $PropertyType<TypeRecord<Schema>, 'equals'>
-// }
 
 function isType(pred: Pred, uniqMark: Symbol, isMono: boolean) {
   return function checkIsType(val: any): boolean {
@@ -51,7 +47,6 @@ const makeContainer = <F>(
   name: string,
   typeName: string,
   descriptor: Descript,
-  isMonoOld: boolean,
   func: {[name: string]: ContextMethod<*, F>}
 ) => {
   const desc: * =
@@ -62,8 +57,6 @@ const makeContainer = <F>(
   const keys = Object.keys(desc)
   const pred = createPred(desc)
   const isMono = keys.length === 1 && keys[0] === 'value'
-  // const values = values(desc)
-  // const subtypes = zip(keys, values)
   const uniqMark = Symbol(name)
   const checkIs = isType(pred, uniqMark, isMono)
   function RecordFn<Type: Descript>(obj: any) {
@@ -76,100 +69,90 @@ const makeContainer = <F>(
     }
     if (isMono && isMezzanine(data.value) && data.value.ಠ_ಠ === uniqMark) return data.value
     if (!pred(data))  {
-      // console.log(RecordStatic, obj, desc)
-      // console.log(pred(obj), obj)
       const mono = isMono.toString()
       const keysList = Object.keys(data).toString()
       const valuesList = values(data).toString()
       const message = `${name}{isMono: ${mono}}: Unsafe pattern mismatch\nKeys: ${keysList}\nValues: ${valuesList}`
       throw new TypeError(message)
     }
-    // funcDesc(this)
-    // getUserMethods(func)(this, RecordFn)
-    // addProperties(staticProps)(RecordFn, RecordFn)
-    // addProperties(mainProps)(RecordFn, RecordFn)
 
     const dataResult = createBuilder(desc, data)
     // console.log(data, obj, dataResult)
     for (const key of keys) {
-      // console.log(rule, property, (rule && rule.ಠ_ಠ))
       //$FlowIssue
       this[key] = dataResult[key]
       // console.log(this[key])
     }
-    addProperties(mainProps)(this, RecordFn)
-    addProperties(instProps)(this, RecordFn)
-    // fantasyOnClass(RecordFn, RecordFn)
+    mainProps(this, RecordFn)
+    instProps(this, RecordFn)
     fantasyInstance(this, RecordFn)
     userMeth(this, RecordFn)
-    // funcDesc(this)
-    // getUserMethods(func)(this, RecordFn)
-    // addProperties(staticProps)(RecordFn, RecordFn)
-    // addProperties(mainProps)(RecordFn, RecordFn)
     toFastProps(this)
   }
-  const mainProps = {
+  const mainProps = addProperties({
     ಠ_ಠ: {
       value     : uniqMark,
-      enumerable: true,
+      enumerable: false,
     },
     //$FlowIssue
     [typeMark]: {
-      get: () => true,
-      enumerable: true,
+      get       : () => true,
+      enumerable: false,
     },
     type: {
       value     : name,
       enumerable: true,
     },
     keys: {
-      value   : keys,
-      writable: true,
+      value     : keys,
+      enumerable: false,
     },
     isMono: {
-      get: () => isMono,
+      get       : () => isMono,
+      enumerable: false,
     },
     is: {
-      value: checkIs
+      value     : checkIs,
+      enumerable: true,
     }
-  }
-  const staticProps = {
+  })
+  const staticProps = addProperties({
     //$FlowIssue
     [Symbol.hasInstance]: {
       value(instance) {
         return checkIs(instance)
       },
+      enumerable: false,
     },
     name: {
-      value: name
+      value     : name,
+      enumerable: false,
     }
-  }
-  const instProps = {
+  })
+  const instProps = addProperties({
     typeName: {
-      get: () => typeName
+      get       : () => typeName,
+      enumerable: true,
     },
     toJSON: {
       value() {
         return toJSON(this)
       },
-      writable: true,
+      writable  : true,
+      enumerable: false,
     },
     [Symbol.iterator]: {
       * value() {
         for (const key of keys) //TODO Replace with more useful values
           yield ([key, this[key]])
-      }
+      },
+      enumerable: false,
     }
-  }
+  })
   const userMeth = getUserMethods(func)
-  addProperties(staticProps)(RecordFn, RecordFn)
-  addProperties(mainProps)(RecordFn, RecordFn)
-  addProperties(mainProps)(RecordFn.prototype, RecordFn)
-  addProperties(instProps)(RecordFn.prototype, RecordFn)
+  staticProps(RecordFn, RecordFn)
+  mainProps(RecordFn, RecordFn)
   fantasyOnClass(RecordFn, RecordFn)
-  fantasyInstance(RecordFn.prototype, RecordFn)
-  // userMeth(RecordFn.prototype, RecordFn)
-  // console.log(RecordFn.prototype)
   return RecordFn
 }
 function getUserMethods(func: *) {
@@ -183,9 +166,8 @@ function getUserMethods(func: *) {
 
 const prepareFl = pipe(
   toPairs,
-  map(([key, value]) => [key, { value, enumerable: true, writable: true, inject: true }]),
-  arr => arr.concat(arr.map(([name, value]) => [`fantasy-land/${name}`, value])),
-  fromPairs,
+  //$FlowIssue
+  (arr: FieldList) => arr.concat(arr.map(([name, value]) => [`fantasy-land/${name}`, value])),
   addProperties)
 
 const fantasyInstance = prepareFl(fantasyMethods)

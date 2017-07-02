@@ -3,12 +3,6 @@
 
 import { is } from 'ramda'
 
-import { typeMark } from './config'
-
-const nativeTypes: NativeType[] = [
-  String, Number, Boolean, Object, Array, Function, RegExp, Symbol
-]
-
 type NativeType =
     typeof Number
   | typeof String

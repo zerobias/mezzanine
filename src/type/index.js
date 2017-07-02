@@ -36,10 +36,8 @@ function Type(tag: string[] | string, ...restOfName: mixed[]) {
   const typeName = typeof tag === 'string'
     ? tag
     : mergeTemplateArgs(tag, ...restOfName).join('')
-  return <+T: *, P: Descript, +F>(desc: P, func: {[name: string]: ContextMethod<T, F>} = {}) => {
-    const isMono = isSingleProof(desc)
-    return typeContainer(typeName, typeName, desc, isMono, func)
-  }
+  return <+T: *, P: Descript, +F>(desc: P, func: {[name: string]: ContextMethod<T, F>} = {}) =>
+    typeContainer(typeName, typeName, desc, func)
 }
 export { typeContainer }
 export default Type

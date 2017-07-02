@@ -106,30 +106,61 @@ type Property = {
   inject?: boolean,
 }
 
-export function addProperties(desc: {[field: string]: Property}) {
+export type Injectable = (ctx: mixed, Ctx: mixed) => mixed
+export type FieldMap = {[field: string]: Property | Injectable}
+export type FieldList = Array<[string | Symbol, Property | Injectable]>
+
+const funcToProperty =
+  <T: Property | Injectable>(property: T): Property =>
+    typeof property === 'function'
+      ? {
+        value     : property,
+        enumerable: false,
+        writable  : true,
+        inject    : true,
+      }
+      : property
+
+function ownKeys(desc: FieldMap) {
+  //$FlowIssue
   const keys: Array<string | Symbol> = Object.getOwnPropertyNames(desc)
     .concat(Object.getOwnPropertySymbols(desc))
-  const funcs = keys.map(key => {
-    //$FlowIssue
-    const val = desc[key]
-    let get = val.get
-    const getter = get
-    if (val.lazy)
-      return addLazyProperty(key, val.value, true)
-    const isGet = get !== undefined
-    const isGetSet = isGet || val.set != null
-    if (isGetSet) {
-      if (isGet && typeof get !== 'function')
-        get = () => getter
-      return addGetSetter(key, get, val.set, val.enumerable, val.writable)
-    } else
-      return addProperty(key, val.value, val.enumerable, val.writable, val.inject)
-  })
+  return keys
+}
+
+function toKeyVal<T: FieldMap | FieldList>(desc: T): FieldList {
+  if (Array.isArray(desc)) return desc
+  const keys = ownKeys(desc)
+  const ln = keys.length
+  const keyVal = Array(ln)
+  for (let i = 0; i < ln; i++)
+    keyVal[i] = [keys[i], desc[keys[i]]]
+  return keyVal
+}
+
+export function addProperties<T: FieldMap | FieldList>(desc: T) {
+  const pairs: FieldList = toKeyVal(desc)
+  const funcs = pairs
+    .map(([key, val]) => [key, funcToProperty(val)])
+    .map(([key, val]: [string | Symbol, Property]) => {
+      let get = val.get
+      const getter = get
+      if (val.lazy)
+        return addLazyProperty(key, val.value, true)
+      const isGet = get !== undefined
+      const isGetSet = isGet || val.set != null
+      if (isGetSet) {
+        if (isGet && typeof get !== 'function')
+          get = () => getter
+        return addGetSetter(key, get, val.set, val.enumerable, val.writable)
+      } else
+        return addProperty(key, val.value, val.enumerable, val.writable, val.inject)
+    })
   return (target: any, klass: any) => {
     funcs.forEach(fn =>
       // console.log(fn)
       //$FlowIssue
-       fn(target, klass)
+      fn(target, klass)
     )
   }
 }
