@@ -1,8 +1,15 @@
 //@flow
-import { map, is, isNil, where, prop, mapObjIndexed } from 'ramda'
+import { map, is, isNil, where, prop, has } from 'ramda'
 
-import { ensureProp, isObject, isMezzanine } from './fixtures'
+import { isObject, isMezzanine } from './fixtures'
 import { type TypeRecord } from './type-container'
+
+export type Pred = <+T>(val: T) => boolean
+type PredMap = {[key: string]: Pred}
+type ReducePred = (predMap: PredMap) => Pred
+//$FlowIssue
+const reducePred: ReducePred = where
+
 export function createPred<T>(val: T): Pred {
   switch (true) {
     case isDirectlyEquals(val): return (obj: mixed) => obj === val
@@ -40,24 +47,23 @@ export function createBuilder(val: $FlowIssue, data: $FlowIssue): * {
   }
 }
 function reduceBuilder<T, Data: {[id: string]: T}>(predMap: PredMap, data: Data) {
-  return mapObjIndexed(
-    (val, key: string) =>
-      createBuilder(
-        val,
-        prop(key, data)),
-    predMap)
+  const keys = Object.keys(predMap)
+  const result: {[key: string]: any} = {}
+  for (let i = 0, ln = keys.length; i < ln; ++i) {
+    const key = keys[i]
+    const keyPred = predMap[key]
+    const nestedData = prop(key, data)
+    result[key] = createBuilder(keyPred, nestedData)
+  }
+  return result
 }
-export type Pred = <+T>(val: T) => boolean
-type PredMap = {[key: string]: Pred}
-type ReducePred = (predMap: PredMap) => Pred
-//$FlowIssue
-const reducePred: ReducePred = where
+
 export function transformInput(val: any, isMono: boolean) {
   switch (true) {
     case isMono === false         : return val
     case isMezzanine(val)         : return { value: val }
     case !isObject(val)           : return { value: val }
-    case !ensureProp('value', val): return { value: val }
+    case !(has('value', val))     : return { value: val }
     default                       : return val
   }
 }

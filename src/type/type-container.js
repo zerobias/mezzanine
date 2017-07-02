@@ -1,17 +1,15 @@
 //@flow
 
-import { map, values, fromPairs, toPairs, pipe } from 'ramda'
+import { values } from 'ramda'
 import toFastProps from '../to-fast-props'
-import { isMezzanine, toJSON } from './fixtures'
+import { isMezzanine } from './fixtures'
 import { typeMark } from '../config'
 import { createBuilder, createPred, transformInput } from './descriptor'
 import { type Pred } from './descriptor'
 import { type ContextMethod } from './index.h'
-import { fantasyStatic, fantasyMethods } from './fantasy-land'
-import { addProperties } from '../utils/props'
-import { type FieldList } from '../utils/props'
-import { arrify } from '../utils/arrify'
-import { append, tail } from '../utils/list'
+import { injector } from '../utils/props'
+import { getInitialValue, applyStack } from '../virtual-stack'
+import { instanceInjectableProps, fantasyInstance, fantasyOnClass } from './properties'
 
 export type Descript =
   | typeof String
@@ -42,9 +40,9 @@ export interface TypeRecord<Schema: Descript> {
 export interface TypeStatic<Schema: Descript> {
   $call(val: Schema): TypeRecord<Schema>,
   (val: Schema): TypeRecord<Schema>,
-  +ಠ_ಠ: Symbol,
   +keys: string[],
   is(val: mixed): boolean,
+  typeName: string,
   contramap<T>(prependFunction: (...vals: T[]) => Schema): TypeStatic<T>,
   of<T: Schema | TypeRecord<Schema>>(val: T): TypeRecord<Schema>,
   equals(a: TypeRecord<Schema>, b: TypeRecord<Schema>): boolean,
@@ -54,17 +52,13 @@ export interface TypeStatic<Schema: Descript> {
   // ap<R>(m: R): R, //???
 }
 
-function getInitialValue(stack: Array<(val: mixed) => mixed>, obj: any): {  val: mixed, succ: boolean } {
-  let val = obj
-  let succ = true
-  try {
-    val = applyStack(stack, val)
-  } catch (err) {
-    succ = false
-    val = err.message
-  }
-  return { val, succ }
+export interface TypeStaticPrivate {
+  +ಠ_ಠ: Symbol,
+  desc: Descript,
+  func: {[name: string]: ContextMethod<*, *>},
+  stack: Array<(val: mixed) => mixed>
 }
+
 
 function isType(pred: Pred, uniqMark: Symbol, isMono: boolean, stack: Array<(val: mixed) => mixed>) {
   const needTransform = stack.length !== 0
@@ -83,38 +77,43 @@ function isType(pred: Pred, uniqMark: Symbol, isMono: boolean, stack: Array<(val
   }
 }
 
-const staticInjectableProps = addProperties({
-  stackUpdate: (Static: any) => (newStack: Array<(val: mixed) => mixed>) => {
-    const result = makeContainer(Static.name, Static.typeName, Static.desc, Static.func, newStack)
-    return result
-  },
-  clone: (Static: any) => () =>
-    makeContainer(Static.name, Static.typeName, Static.desc, Static.func, Static.stack)
-})
-/*function applyStack(stack: Array<(val: mixed) => mixed>, data: mixed, hist: mixed[]) {
-  if (stack.length === 0)
-    return data
-  const fn = stack[0]
-  const val = fn(data)
-  const history = append(val, hist)
-  const nextStack = tail(stack)
-  return applyStack(nextStack, val, history)
-}*/
+const newUniqMark = (name: string) => Symbol(name)
 
-function applyStack(stack: Array<(val: mixed) => mixed>, data: mixed) {
-  const ln = stack.length
-  if (ln === 0)
-    return data
-  const history = []
-  let current = data
-  for (let i = 0; i < ln; ++i) {
-    const fn = stack[i]
-    const val = fn(current)
-    history.length = i + 1
-    current = history[i] = val
-  }
-  return current
+
+const generalInjectableProps = {
+  clone: (_: any, Static: TypeStatic<any> & TypeStaticPrivate) => () => {
+    const { name, typeName, desc, func, stack } = Static
+    return makeContainer(name, typeName, desc, func, stack)
+  },
+  //$FlowIssue
+  [typeMark]: {
+    get       : () => true,
+    enumerable: false,
+  },
 }
+
+const staticInjectableProps = {
+  //$FlowIssue
+  [Symbol.hasInstance]: (Static: TypeStatic<any>) => (val: mixed) => Static.is(val),
+  stackUpdate         : (Static: TypeStatic<any> & TypeStaticPrivate) =>
+    (newStack: Array<(val: mixed) => mixed>) => {
+      const { name, typeName, desc, func } = Static
+      return makeContainer(name, typeName, desc, func, newStack)
+    },
+}
+
+const fullStaticProps = injector([
+  generalInjectableProps,
+  staticInjectableProps,
+  fantasyOnClass,
+])
+
+const fullInstanceProps = injector([
+  generalInjectableProps,
+  instanceInjectableProps,
+  fantasyInstance,
+])
+
 function makeContainer<F, Type: Descript>(
   name: string,
   typeName: string,
@@ -131,8 +130,9 @@ function makeContainer<F, Type: Descript>(
   const keys = Object.keys(desc)
   const pred = createPred(desc)
   const isMono = keys.length === 1 && keys[0] === 'value'
-  const uniqMark = Symbol(name)
+  const uniqMark = newUniqMark(name)
   const checkIs = isType(pred, uniqMark, isMono, stack)
+
   function RecordFn<Type: Descript>(arg: any) {
     //$FlowIssue
     if (new.target == null)
@@ -157,20 +157,13 @@ function makeContainer<F, Type: Descript>(
       this[key] = dataResult[key]
       // console.log(this[key])
     }
-    mainProps(this, RecordFn)
-    instProps(this, RecordFn)
-    fantasyInstance(this, RecordFn)
-    userMeth(this, RecordFn)
+    fullInnerInstProps(this, RecordFn)
+    fullInstanceProps(this, RecordFn)
     toFastProps(this)
   }
-  const mainProps = addProperties({
+  const generalProps = {
     ಠ_ಠ: {
       value     : uniqMark,
-      enumerable: false,
-    },
-    //$FlowIssue
-    [typeMark]: {
-      get       : () => true,
       enumerable: false,
     },
     type: {
@@ -189,15 +182,8 @@ function makeContainer<F, Type: Descript>(
       value     : checkIs,
       enumerable: true,
     }
-  })
-  const staticProps = addProperties({
-    //$FlowIssue
-    [Symbol.hasInstance]: {
-      value(instance) {
-        return checkIs(instance)
-      },
-      enumerable: false,
-    },
+  }
+  const staticProps = {
     name: {
       value     : name,
       enumerable: false,
@@ -218,49 +204,37 @@ function makeContainer<F, Type: Descript>(
       value     : stack,
       enumerable: false,
     },
-  })
-  const instProps = addProperties({
+  }
+  const instProps = {
     typeName: {
       value     : typeName,
       enumerable: true,
     },
-    toJSON: {
-      value() {
-        return toJSON(this)
-      },
-      writable  : true,
-      enumerable: false,
-    },
-    [Symbol.iterator]: {
-      * value() {
-        for (const key of keys) //TODO Replace with more useful values
-          yield ([key, this[key]])
-      },
-      enumerable: false,
-    },
-  })
+  }
+  const fullInnerStaticProps = injector([
+    generalProps,
+    staticProps,
+  ])
   const userMeth = getUserMethods(func)
-  staticProps(RecordFn, RecordFn)
-  staticInjectableProps(RecordFn, RecordFn)
-  mainProps(RecordFn, RecordFn)
-  fantasyOnClass(RecordFn, RecordFn)
+  const fullInnerInstProps = injector([
+    generalProps,
+    instProps,
+    userMeth,
+  ])
+  fullInnerStaticProps(RecordFn, RecordFn)
+  fullStaticProps(RecordFn, RecordFn)
   return RecordFn
 }
-function getUserMethods(func: *) {
-  const pairs = Object.getOwnPropertyNames(func)
+const getUserMethods = (func: *) =>
+  Object.getOwnPropertyNames(func)
   //$FlowIssue
     .concat(Object.getOwnPropertySymbols(func))
-    .map(key => [key, { value: func[key], enumerable: true, writable: true, inject: true }])
-  const methodMap = fromPairs(pairs)
-  return addProperties(methodMap)
-}
+    .map(key => [key, {
+      value     : func[key],
+      enumerable: true,
+      writable  : true,
+      inject    : true
+    }])
 
-const prepareFl = pipe(
-  toPairs,
-  //$FlowIssue
-  (arr: FieldList) => arr.concat(arr.map(([name, value]) => [`fantasy-land/${name}`, value])),
-  addProperties)
 
-const fantasyInstance = prepareFl(fantasyMethods)
-const fantasyOnClass = prepareFl(fantasyStatic)
 export default makeContainer

@@ -124,6 +124,49 @@ export function copy<T>(a: T[]): T[] {
 }
 
 /**
+ * concat :: [[a]] -> [a]
+ *
+ * @export
+ * @template T
+ * @param {T[][]} a
+ * @returns {T[]}
+ */
+export function concat<T>(a: T[][]): T[] {
+  const lnMain = a.length
+  let lnTotal = 0
+  const lengthList = Array(lnMain)
+  for (let i = 0; i < lnMain; ++i) {
+    lnTotal += lengthList[i] = a[i].length
+  }
+  const b = new Array(lnTotal)
+  let index = 0
+  for (let i = 0; i < lnMain; ++i) {
+    for (let j = 0, ln = lengthList[i], list = a[i]; j < ln; ++j) {
+      b[index++] = list[j]
+    }
+  }
+  return b
+}
+
+/**
+ * reverse :: [a] -> [a]
+ *
+ * @export
+ * @template T
+ * @param {T[]} a
+ * @returns {T[]}
+ */
+export function reverse<T>(a: T[]): T[] {
+  const l = a.length
+  const last = l - 1
+  const b = new Array(l)
+  for (let i = 0; i < l; ++i) {
+    b[i] = a[last - i]
+  }
+  return b
+}
+
+/**
  * map :: (a -> b) -> [a] -> [b]
  * transform each element with f
  *
@@ -141,6 +184,50 @@ export function map<T, S>(f: (val: T) => S, a: T[]): S[] {
     b[i] = f(a[i])
   }
   return b
+}
+
+export function forEach<T, S>(l: number, f: (val: T) => S, a: T[]): void {
+  let i = l
+  while (i--)
+    f(a[i])
+}
+
+function applyList<T, S>(l: number, a: Array<(val: T) => S>, x: T): S {
+  let result = x
+  let currentFn
+  let current = x
+  for (let i = 0; i < l; ++i) {
+    currentFn = a[i]
+    //$FlowIssue
+    result = currentFn(current)
+    current = result
+  }
+  //$FlowIssue
+  return result
+}
+
+function internalTransducer<T, S>(
+  fList: Array<(val: T) => S>,
+  a: T[],
+  ln: number,
+  fln: number
+): S[] {
+  const result = Array(ln)
+  let current
+  for (let i = 0; i < ln; ++i) {
+    current = a[i]
+    result[i] = applyList(fln, fList, current)
+  }
+  return result
+}
+
+//$FlowIssue
+export function transducer<T, S>(fList: Array<(val: T) => S>, a: T[]): S[] {
+  const ln = a.length
+  const fln = fList.length
+  if (ln === 0) return []
+  if (fln === 0) return copy(a)
+  return internalTransducer(fList, a, ln, fln)
 }
 
 /**

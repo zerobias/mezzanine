@@ -1,3 +1,6 @@
+import { dropRepeatsWith } from 'ramda'
+
+import { transducer, forEach, map, reverse, concat } from './list'
 //@flow
 
 export function copyObject<T: Object | Function>(orig: T): T {
@@ -108,7 +111,8 @@ type Property = {
 
 export type Injectable = (ctx: mixed, Ctx: mixed) => mixed
 export type FieldMap = {[field: string]: Property | Injectable}
-export type FieldList = Array<[string | Symbol, Property | Injectable]>
+type FieldPair = [string | Symbol, Property | Injectable]
+export type FieldList = Array<FieldPair>
 
 const funcToProperty =
   <T: Property | Injectable>(property: T): Property =>
@@ -138,32 +142,43 @@ function toKeyVal<T: FieldMap | FieldList>(desc: T): FieldList {
   return keyVal
 }
 
+const internalAdd = ([key, val]: [string | Symbol, Property]) => {
+  let get = val.get
+  const getter = get
+  if (val.lazy)
+    //$FlowIssue
+    return addLazyProperty(key, val.value, true)
+  const isGet = get !== undefined
+  const isGetSet = isGet || val.set != null
+  if (isGetSet) {
+    if (isGet && typeof get !== 'function')
+      get = () => getter
+    return addGetSetter(key, get, val.set, val.enumerable, val.writable)
+  } else
+    return addProperty(key, val.value, val.enumerable, val.writable, val.inject)
+}
+
+const addPipe = [
+  ([key, val]: FieldPair) => [
+    key,
+    funcToProperty(val)
+  ],
+  internalAdd,
+]
 export function addProperties<T: FieldMap | FieldList>(desc: T) {
   const pairs: FieldList = toKeyVal(desc)
-  const funcs = pairs
-    .map(([key, val]) => [key, funcToProperty(val)])
-    .map(([key, val]: [string | Symbol, Property]) => {
-      let get = val.get
-      const getter = get
-      if (val.lazy)
-        //$FlowIssue
-        return addLazyProperty(key, val.value, true)
-      const isGet = get !== undefined
-      const isGetSet = isGet || val.set != null
-      if (isGetSet) {
-        if (isGet && typeof get !== 'function')
-          get = () => getter
-        return addGetSetter(key, get, val.set, val.enumerable, val.writable)
-      } else
-        return addProperty(key, val.value, val.enumerable, val.writable, val.inject)
-    })
-  return (target: any, klass: any) => {
-    funcs.forEach(fn =>
-      // console.log(fn)
-      //$FlowIssue
-      fn(target, klass)
-    )
+  const funcs = transducer(addPipe, pairs)
+  const funcsCount = funcs.length
+  return function addProps(target: any, klass: any) {
+    //$FlowIssue
+    forEach(funcsCount, fn => fn(target, klass), funcs)
   }
 }
 
+const filterNames = dropRepeatsWith((a: FieldPair, b: FieldPair) => a[0] === b[0])
 
+export function injector<T: FieldMap | FieldList>(list: Array<T>) {
+  const pairsLists = reverse(filterNames(reverse(concat(map(toKeyVal, list)))))
+  const propMap = addProperties(pairsLists)
+  return propMap
+}

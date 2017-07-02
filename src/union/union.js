@@ -11,14 +11,16 @@ import { zip, difference, isEmpty, values as getValues } from 'ramda'
 
 import /*Type, */{ typeContainer } from '../type'
 import isOrthogonal from '../ortho'
-import { copyProps, rename } from '../decorators'
+import { rename } from '../decorators'
 import { typeMark } from '../config'
 import { isMezzanine } from '../type/fixtures'
 import { addProperties } from '../utils/props'
 import { type TypeRecord } from '../type/type-container'
 import { curry2 } from '../utils/fp'
+import { append } from '../utils/list'
 
 import { type FieldMap } from '../utils/props'
+import { getInitialValue, applyStack } from '../virtual-stack'
 
 /* eslint-disable */
 
@@ -57,14 +59,19 @@ export interface UnionStatic extends Iterable<[string, *]> {
 
 
 const staticFantasy = addProperties({
-  contramap:  (ctx: UnionStatic) =>
+  stackUpdate: (Ctx: UnionStatic) =>
+    (newStack: Array<(val: mixed) => mixed>) => {
+      //$FlowIssue
+      const { typeName, desc, func } = Ctx
+      return Union([typeName])(desc, func, newStack)
+    },
+  contramap: (Ctx: UnionStatic) =>
     function contramap<T, S>(prependFunction: (...vals: S[]) => T) {
-      function preprocessed(...data: S[]) {
-        const preprocessResult = prependFunction(...data)
-        return ctx(preprocessResult)
-      }
-      copyProps(ctx, preprocessed)
-      return preprocessed
+      //$FlowIssue
+      const newStack = append(prependFunction, Ctx.stack)
+      //$FlowIssue
+      const NewRecord = Ctx.stackUpdate(newStack)
+      return NewRecord
     }
 })
 
@@ -86,9 +93,9 @@ const instProps = addProperties({
 })
 
 const subclassReference = addProperties({
-  keys: (_: any, child) => child.keys,
+  keys  : (_: any, child) => child.keys,
   isMono: (_: any, child) => child.isMono,
-  toJSON: (_: any, child) => {
+  toJSON(_: any, child) {
     if (typeof child.toJSON === 'function')
       return child.toJSON()
     return _.toJSON()
@@ -101,7 +108,12 @@ function unrelevantCaseError(union: UnionStatic, diff: string[], data: *) {
   throw new Error(`Unrelevant case types ${diff.toString()} on type ${union.typeName}`)
 }
 
-function caseSelector(union: UnionStatic, subtypesMap: *, uniqMark: Symbol, cases: {[key: string]: (val: *) => *}, subtype: *) {
+function caseSelector(
+  union: UnionStatic,
+  subtypesMap: *,
+  uniqMark: Symbol,
+  cases: {[key: string]: (val: *) => *},
+  subtype: *) {
   const {
     _ = defaultCase,
     ...realCases
@@ -136,128 +148,147 @@ const caseFactory = (union: UnionStatic, subtypesMap: *, uniqMark: Symbol) =>
 
 /**
  * Make type union
- * @param {string} typeName
+ *
+ * @param {string[]} [typeName]
+ * @returns
  *
  * @example
  * Union`User`({ Account: String, Guest: {} })
  */
-const Union = ([typeName]: string[]) =>
-(desc: {[name: string]: *},
-funcBlob: FieldMap = {},
+function Union([typeName]: string[]) {
+  return function UnionFabric(
+    desc: {[name: string]: *},
+    funcBlob: FieldMap = {},
+    stack: Array<(val: mixed) => mixed> = []
+  ) {
+    const canMatch = isOrthogonal(desc)
 
-) => {
-  const canMatch = isOrthogonal(desc)
+    const uniqMark = Symbol(typeName)
 
-  const uniqMark = Symbol(typeName)
-
-  const keys = Object.keys(desc)
-  const values = getValues(desc)
-  const subtypes = zip(keys, values)
-  const subtypesMap = {}
-  for (const [key, arg] of subtypes)
-    subtypesMap[key] = rename(key)(typeContainer(key, typeName, arg, {}))
-  const caseWith = caseFactory(UnionClass, subtypesMap, uniqMark)
-  function* iterator() {
-    for (const key of keys)
-      yield ([key, subtypesMap[key]])
-  }
-  function is(val: *) {
-    for (const [key, pattern] of iterator()) {
-      if (pattern.is) {
-        if (pattern.is(val)) return true
-      } else if (typeof pattern === 'function' && pattern(val))
-        return true
+    const keys = Object.keys(desc)
+    const values = getValues(desc)
+    const subtypes = zip(keys, values)
+    const subtypesMap = {}
+    for (const [key, arg] of subtypes)
+      subtypesMap[key] = rename(key)(typeContainer(key, typeName, arg, {}))
+    const caseWith = caseFactory(UnionClass, subtypesMap, uniqMark)
+    function* iterator() {
+      for (const key of keys)
+        yield ([key, subtypesMap[key]])
     }
-    return false
-  }
-
-
-  const staticProps = addProperties({
-    funcs: {
-      get: () => funcBlob,
-      enumerable: false,
-    },
-    name: {
-      value: typeName,
-      enumerable: false,
-    },
-    case: {
-      value: curry2(caseWith),
-      enumerable: false,
-    },
-  })
-
-  const mainProps = addProperties({
-    ಠ_ಠ: {
-      value     : uniqMark,
-      enumerable: false,
-    },
-    //$FlowIssue
-    [typeMark]: {
-      get: () => true,
-      enumerable: false,
-    },
-    //$ FlowIssue
-    [Symbol.iterator]: () => iterator,
-    is: {
-      value: () => is,
-      inject: true,
-      enumerable: true,
-    },
-    typeName: {
-      value     : typeName,
-      enumerable: true,
-    },
-    canMatch: {
-      value     : canMatch,
-      enumerable: true,
-    },
-    types: {
-      value: keys,
-      enumerable: true,
-    },
-  })
-
-  const userMeth = addProperties(funcBlob)
-
-  //$FlowIssue
-  function UnionClass(arg: *): UnionType {
-    //$FlowIssue
-    if (new.target !== UnionClass)
-      return new UnionClass(arg)
-    const data = arg && arg.value
-      ? arg.value
-      : arg;
-    let matched = false
-    for (const [key, pattern] of iterator()) {
-      if (pattern.is(data)) {
-        const fin = pattern(data)
-        Object.assign(this, fin)
-        if (fin.isMono)
-          this.value = fin.value
-        subclassReference(this, fin)
-        matched = true
-        break
+    const needTransform = stack.length !== 0
+    function is(obj: *) {
+      let val = obj
+      if (needTransform === true) {
+        const initial = getInitialValue(stack, val)
+        if (initial.succ === false) return false
+        val = initial.val
       }
+      for (const [key, pattern] of iterator()) {
+        if (pattern.is) {
+          if (pattern.is(val)) return true
+        } else if (typeof pattern === 'function' && pattern(val))
+          return true
+      }
+      return false
     }
-    if (matched === false)
-      unmatchError(UnionClass, data)
 
-    instProps(this, UnionClass)
-    mainProps(this, UnionClass)
-    instanceFantasy(this, UnionClass)
-    userMeth(this, UnionClass)
+
+    const staticProps = addProperties({
+      funcs: {
+        value     : funcBlob,
+        enumerable: false,
+      },
+      desc: {
+        value     : desc,
+        enumerable: false,
+      },
+      name: {
+        value     : typeName,
+        enumerable: false,
+      },
+      case: {
+        value     : curry2(caseWith),
+        enumerable: false,
+      },
+      stack: {
+        value     : stack,
+        enumerable: false,
+      },
+    })
+
+    const mainProps = addProperties({
+      ಠ_ಠ: {
+        value     : uniqMark,
+        enumerable: false,
+      },
+      //$FlowIssue
+      [typeMark]: {
+        get       : () => true,
+        enumerable: false,
+      },
+      //$ FlowIssue
+      [Symbol.iterator]: () => iterator,
+      is               : {
+        value     : () => is,
+        inject    : true,
+        enumerable: true,
+      },
+      typeName: {
+        value     : typeName,
+        enumerable: true,
+      },
+      canMatch: {
+        value     : canMatch,
+        enumerable: true,
+      },
+      types: {
+        value     : keys,
+        enumerable: true,
+      },
+    })
+
+    const userMeth = addProperties(funcBlob)
+
+    //$FlowIssue
+    function UnionClass(obj: *): UnionType {
+      //$FlowIssue
+      if (new.target !== UnionClass)
+        return new UnionClass(obj)
+      const arg = applyStack(stack, obj)
+      const data = arg && arg.value
+        ? arg.value
+        : arg
+      let matched = false
+      for (const [key, pattern] of iterator()) {
+        if (pattern.is(data)) {
+          const fin = pattern(data)
+          Object.assign(this, fin)
+          if (fin.isMono)
+            this.value = fin.value
+          subclassReference(this, fin)
+          matched = true
+          break
+        }
+      }
+      if (matched === false)
+        unmatchError(UnionClass, data)
+
+      instProps(this, UnionClass)
+      mainProps(this, UnionClass)
+      instanceFantasy(this, UnionClass)
+      userMeth(this, UnionClass)
+    }
+
+    staticProps(UnionClass, UnionClass)
+    mainProps(UnionClass, UnionClass)
+    staticFantasy(UnionClass, UnionClass)
+
+    Object.assign(UnionClass, subtypesMap)
+    // console.log(UnionClass)
+    return UnionClass
   }
-
-  staticProps(UnionClass, UnionClass)
-  mainProps(UnionClass, UnionClass)
-  staticFantasy(UnionClass, UnionClass)
-
-  Object.assign(UnionClass, subtypesMap)
-  // console.log(UnionClass)
-  return UnionClass
 }
-
 //$FlowIssue
 function unmatchError(union: UnionStatic, data: mixed) {
   console.error(union)

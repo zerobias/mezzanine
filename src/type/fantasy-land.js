@@ -2,7 +2,7 @@
 
 import { equals, merge } from 'ramda'
 import { append, cons } from '../utils/list'
-import { type TypeRecord, type TypeStatic } from './type-container'
+import { type TypeRecord, type TypeStatic, type TypeStaticPrivate } from './type-container'
 
 
 export const fantasyMethods = {
@@ -21,19 +21,21 @@ export const fantasyMethods = {
   extract: (ctx: TypeRecord<any>) => function extract() { return ctx.toJSON() },
   ap     : (ctx: TypeRecord<any>) =>
     function ap(m: TypeRecord<any>) { return m.chain(f => ctx.map(f)) },
-  extend : (ctx: TypeRecord<any>, Record: TypeStatic<any>) =>
+  extend: (ctx: TypeRecord<any>, Record: TypeStatic<any>) =>
     function extend(fn: (val: TypeRecord<any>) => any) { return Record(fn(ctx)) },
-  chain  : (ctx: TypeRecord<any>) =>
+  chain: (ctx: TypeRecord<any>) =>
     (fn: (val: any) => TypeRecord<any>) =>
       fn(ctx.toJSON()),
-  map    : (ctx: TypeRecord<any>, Record: TypeStatic<any>) =>
+  map: (ctx: TypeRecord<any>, Record: TypeStatic<any>) =>
     (fn: (val: any) => TypeRecord<any>) =>
       Record(fn(ctx)),
 }
 
 export const fantasyStatic = {
-  of: (Record: TypeStatic<any>) => (val: *) =>
-    val && (Record.ಠ_ಠ === val.ಠ_ಠ)
+  of: (Record: TypeStatic<any> & TypeStaticPrivate) => (val: *) =>
+    typeof val === 'object'
+    && val != null
+    && (Record.ಠ_ಠ === val.ಠ_ಠ)
       ? val
       : Record(val),
   equals   : () => (a: TypeRecord<any>, b: TypeRecord<any>) => a.equals(b),
