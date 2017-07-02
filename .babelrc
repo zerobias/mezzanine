@@ -12,6 +12,7 @@
     ["transform-es2015-block-scoping", {
       "throwIfClosureRequired": true
     }]
+    ,"tailcall-optimization"
     // ,"closure-elimination"
   ],
   "sourceMaps": true,

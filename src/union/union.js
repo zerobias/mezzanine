@@ -9,24 +9,27 @@
 
 import { zip, difference, isEmpty, values as getValues } from 'ramda'
 
-import Type, { typeContainer } from '../type'
+import /*Type, */{ typeContainer } from '../type'
 import isOrthogonal from '../ortho'
 import { copyProps, rename } from '../decorators'
 import { typeMark } from '../config'
 import { isMezzanine } from '../type/fixtures'
 import { addProperties } from '../utils/props'
+import { type TypeRecord } from '../type/type-container'
 import { curry2 } from '../utils/fp'
 
 import { type FieldMap } from '../utils/props'
 
 /* eslint-disable */
 
+//$FlowIssue
 export interface UnionType extends Iterable<[string, *]> {
   ಠ_ಠ: Symbol,
   keys: string[],
   isMono: boolean,
   typeName: string,
 
+  value: TypeRecord<any>,
 
   toJSON(): mixed,
   is(val: mixed): boolean,
@@ -76,12 +79,60 @@ const instanceFantasy = addProperties({
     },
 })
 
+const instProps = addProperties({
+  case: (ctx: UnionType, Ctx: UnionStatic) =>
+    (cases: {[string]: (val: mixed) => mixed}) =>
+      Ctx.case(cases, ctx.value),
+})
+
 const subclassReference = addProperties({
   keys: (_: any, child) => child.keys,
   isMono: (_: any, child) => child.isMono,
-  toJSON: (_: any, child) =>  child.toJSON(),
+  toJSON: (_: any, child) => {
+    if (typeof child.toJSON === 'function')
+      return child.toJSON()
+    return _.toJSON()
+  },
 })
 
+function unrelevantCaseError(union: UnionStatic, diff: string[], data: *) {
+  console.error(union)
+  console.error(data)
+  throw new Error(`Unrelevant case types ${diff.toString()} on type ${union.typeName}`)
+}
+
+function caseSelector(union: UnionStatic, subtypesMap: *, uniqMark: Symbol, cases: {[key: string]: (val: *) => *}, subtype: *) {
+  const {
+    _ = defaultCase,
+    ...realCases
+  } = cases
+  const diff = difference(Object.keys(realCases), union.keys)
+  if (!isEmpty(diff))
+    unrelevantCaseError(union, diff, subtype)
+  if (isMezzanine(subtype) && (subtype.ಠ_ಠ === uniqMark)) {
+    const currentCase = realCases[subtype.type]
+    // console.log(currentCase)
+    if (typeof currentCase === 'function')
+      return currentCase(subtype.toJSON(), union)
+    else return _(subtype)
+  }
+  for (const variant of Object.keys(realCases)) {
+    const childType = subtypesMap[variant]
+    const currentCase = realCases[variant]
+    if (childType.is(subtype)) {
+      const finalValue = childType.ಠ_ಠ === subtype.ಠ_ಠ
+        ? subtype
+        : childType(subtype)
+      return currentCase(finalValue.toJSON(), union)
+    }
+  }
+  return _(subtype)
+}
+
+//$FlowIssue
+const caseFactory = (union: UnionStatic, subtypesMap: *, uniqMark: Symbol) =>
+  (cases: {[key: string]: (val: *) => *}, subtype: *) =>
+    caseSelector(union, subtypesMap, uniqMark, cases, subtype)
 
 /**
  * Make type union
@@ -91,7 +142,10 @@ const subclassReference = addProperties({
  * Union`User`({ Account: String, Guest: {} })
  */
 const Union = ([typeName]: string[]) =>
-(desc: {[name: string]: *}, funcBlob: FieldMap = {}) => {
+(desc: {[name: string]: *},
+funcBlob: FieldMap = {},
+
+) => {
   const canMatch = isOrthogonal(desc)
 
   const uniqMark = Symbol(typeName)
@@ -102,7 +156,7 @@ const Union = ([typeName]: string[]) =>
   const subtypesMap = {}
   for (const [key, arg] of subtypes)
     subtypesMap[key] = rename(key)(typeContainer(key, typeName, arg, {}))
-
+  const caseWith = caseFactory(UnionClass, subtypesMap, uniqMark)
   function* iterator() {
     for (const key of keys)
       yield ([key, subtypesMap[key]])
@@ -116,34 +170,7 @@ const Union = ([typeName]: string[]) =>
     }
     return false
   }
-  const caseWith =
-    curry2(function caseWith(cases: {[string]: (val: *) => *}, subtype: *) {
-      const {
-        _ = defaultCase,
-        ...realCases
-      } = cases
-      const diff = difference(Object.keys(realCases), keys)
-      if (!isEmpty(diff)) {
-        throw new Error(`Unrelevant case types ${diff.toString()} on type ${typeName}`)
-      }
-      if (isMezzanine(subtype) && (subtype.ಠ_ಠ === uniqMark)) {
-        const currentCase = realCases[subtype.type]
-        if (typeof currentCase === 'function')
-          return currentCase(subtype.toJSON(), UnionClass)
-        else return _(subtype)
-      }
-      for (const variant of Object.keys(realCases)) {
-        const childType = subtypesMap[variant]
-        const currentCase = realCases[variant]
-        if (childType.is(subtype)) {
-          const finalValue = childType.ಠ_ಠ === subtype.ಠ_ಠ
-            ? subtype
-            : childType(subtype)
-          return currentCase(finalValue.toJSON(), UnionClass)
-        }
-      }
-      return _(subtype)
-    })
+
 
   const staticProps = addProperties({
     funcs: {
@@ -155,7 +182,7 @@ const Union = ([typeName]: string[]) =>
       enumerable: false,
     },
     case: {
-      value: caseWith,
+      value: curry2(caseWith),
       enumerable: false,
     },
   })
@@ -191,12 +218,6 @@ const Union = ([typeName]: string[]) =>
     },
   })
 
-  const instProps = addProperties({
-    case: (ctx: UnionType) =>
-      (cases: {[string]: (val: mixed) => mixed}) =>
-        caseWith(cases, ctx),
-  })
-
   const userMeth = addProperties(funcBlob)
 
   //$FlowIssue
@@ -212,15 +233,15 @@ const Union = ([typeName]: string[]) =>
       if (pattern.is(data)) {
         const fin = pattern(data)
         Object.assign(this, fin)
-        subclassReference(this, fin)
         if (fin.isMono)
           this.value = fin.value
+        subclassReference(this, fin)
         matched = true
         break
       }
     }
-    if (!matched)
-      throw new TypeError('Unmatched pattern')
+    if (matched === false)
+      unmatchError(UnionClass, data)
 
     instProps(this, UnionClass)
     mainProps(this, UnionClass)
@@ -233,8 +254,15 @@ const Union = ([typeName]: string[]) =>
   staticFantasy(UnionClass, UnionClass)
 
   Object.assign(UnionClass, subtypesMap)
-  console.log(UnionClass)
+  // console.log(UnionClass)
   return UnionClass
+}
+
+//$FlowIssue
+function unmatchError(union: UnionStatic, data: mixed) {
+  console.error(union)
+  console.error(data)
+  throw new TypeError('Unmatched pattern')
 }
 
 const defaultCase = (instance: *) => {
@@ -243,12 +271,12 @@ const defaultCase = (instance: *) => {
 
 export default Union
 
-const Boy = Type`Boy`({
-  name: String,
-  alive: Boolean
-}, {
-  mutableKill: (ctx) => () => { ctx.alive = false }
-})
+// const Boy = Type`Boy`({
+//   name: String,
+//   alive: Boolean
+// }, {
+//   mutableKill: (ctx) => () => { ctx.alive = false }
+// })
 
 // mutable function
 // const Fred = Boy({ name: 'Fred', alive: true })
@@ -295,9 +323,10 @@ const Boy = Type`Boy`({
 // [...family1].map(([key,value])=>key)/*?*/
 // //pattern-switch
 // const actions = {
-//   Single:({ value: child }) => child.name,
-//   Couple:({ value: childs }) => [childs.elder.name, childs.younger.name]
+//   Single:(child) => child.name,
+//   Couple:({ elder, younger }) => [elder.name, younger.name]
 // }
 
 // console.log(family2.case(actions))
-// // family1.case(actions)/*?*/
+// console.log(family1.case(actions))
+

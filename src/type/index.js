@@ -1,5 +1,4 @@
 //@flow
-import { isSingleProof } from '../verify'
 
 import typeContainer from './type-container'
 import { mergeTemplateArgs } from '../decorators'
@@ -15,6 +14,7 @@ type Descript =
   | number
   | boolean
   | Pred
+  //$FlowIssue
   | {[id: string]: Descript }
 /**
  * Make single type which

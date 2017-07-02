@@ -1,14 +1,14 @@
 //@flow
-import { map, is, isNil, where, prop, assoc, mapObjIndexed } from 'ramda'
+import { map, is, isNil, where, prop, mapObjIndexed } from 'ramda'
 
 import { ensureProp, isObject, isMezzanine } from './fixtures'
 import { type TypeRecord } from './type-container'
-import { Check, Rule } from '../validation'
 export function createPred<T>(val: T): Pred {
   switch (true) {
     case isDirectlyEquals(val): return (obj: mixed) => obj === val
     case isCheckByType(val): return is(val)
     case isMezzanine(val): {
+      //$FlowIssue
       const cast: TypeRecord<T> = (val: any)
       return (obj: mixed) => cast.is(obj)
     }
@@ -28,7 +28,7 @@ export function createPred<T>(val: T): Pred {
     }
   }
 }
-export function createBuilder(val: $FlowIssue, data: *): * {
+export function createBuilder(val: $FlowIssue, data: $FlowIssue): * {
   switch (true) {
     case isDirectlyEquals(val): return data
     case isCheckByType(val): return data
@@ -71,12 +71,3 @@ const isCheckByType = (val: mixed): boolean %checks =>
   || val === Boolean
   || val === Function
   || val === Array
-const checkByTypeCheck: Check<'check by type'> = new Check(
-  isCheckByType,
-  () => 'sholud check by type',
-  'check by type')
-const checkByType: Rule<'check by type'> = new Rule(
-  'check by type',
-  () => 'sholud check by type',
-  [checkByTypeCheck]
-)

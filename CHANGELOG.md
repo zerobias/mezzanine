@@ -1,3 +1,20 @@
+# 0.2.0
+- Major perfomance boost
+- Remove `core-decorators`
+- Fix contramap inconsistency
+```js
+const toLength = (text) => text.length
+
+const Num = Type`Num`(Number)
+const Length = Num.contramap(toLength)
+
+expect(Num.is('word')).toBe(false)
+expect(Length.is('word')).toBe(true)
+
+```
+- Implement stack-safe contramap computations
+- Add relevant stress-test
+- Fix all flow errors
 
 # 0.1.3
 - Fix node 6 support

@@ -2,16 +2,8 @@
 'use strict'
 
 import { without } from 'ramda'
-import type { PropDescriptor } from './index.h'
 
 const omitProto = without(['prototype'])
-
-export function omitNew<+T>(klass: Class<T> & Function) {
-  function Decorated(...args: Array<*>) {
-    return new klass(...args)
-  }
-  return copyProps(klass, Decorated)
-}
 
 export function mergeTemplateArgs(strings: string[], ...values?: Array<*>): Array<*> {
   const stringsLn = strings.length
@@ -35,36 +27,36 @@ export const rename = (name: string) => <T: Function>(fn: T): T => {
   return fn
 }
 
-export const methodTag = (...tags: *) => {
-  const name = Array.isArray(tags[0])
-    ? mergeTemplateArgs(...tags).join('')
-    : tags[0] || ''
-  const renamer = rename(name)
-  return <K, P: Function>(target: K, key: string, descriptor: PropDescriptor<P>) => {
-    if (descriptor.value === undefined)
-      throw new TypeError('undefined renamed value')
-    renamer(descriptor.value)
-    return descriptor
-  }
-}
+// export const methodTag = (...tags: *) => {
+//   const name = Array.isArray(tags[0])
+//     ? mergeTemplateArgs(...tags).join('')
+//     : tags[0] || ''
+//   const renamer = rename(name)
+//   return <K, P: Function>(target: K, key: string, descriptor: PropDescriptor<P>) => {
+//     if (descriptor.value === undefined)
+//       throw new TypeError('undefined renamed value')
+//     renamer(descriptor.value)
+//     return descriptor
+//   }
+// }
 
-export const callableClass =
-  <T, F>(fabric: (klass: Class<T>, obj: T) => F) =>
-    (klass: Class<T> & Function): Class<(T | F)> => {
-      class Decorated {
-        $call: F
-        constructor(...args: Array<*>) {
-          const instance = new klass(...args)
-          const callable = fabric(klass, instance)
-          copyProps(instance, callable)
-          return callable
-        }
-      }
+// export const callableClass =
+//   <T, F>(fabric: (klass: Class<T>, obj: T) => F) =>
+//     (klass: Class<T> & Function): Class<(T | F)> => {
+//       class Decorated {
+//         $call: F
+//         constructor(...args: Array<*>) {
+//           const instance = new klass(...args)
+//           const callable = fabric(klass, instance)
+//           copyProps(instance, callable)
+//           return callable
+//         }
+//       }
 
-      copyProps(klass, Decorated)
+//       copyProps(klass, Decorated)
 
-      return ((Decorated: any): Class<(T | F)>)
-    }
+//       return ((Decorated: any): Class<(T | F)>)
+//     }
 
 export function copyProps<+T: Object, S>(source: T, target: S): T | S {
   const props =

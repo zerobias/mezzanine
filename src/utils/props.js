@@ -146,6 +146,7 @@ export function addProperties<T: FieldMap | FieldList>(desc: T) {
       let get = val.get
       const getter = get
       if (val.lazy)
+        //$FlowIssue
         return addLazyProperty(key, val.value, true)
       const isGet = get !== undefined
       const isGetSet = isGet || val.set != null
