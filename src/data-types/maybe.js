@@ -8,11 +8,12 @@ import Type from '../type'
 
 const id = <+T>(x: T): T => x
 
-const Just = Type`Just`(complement(isNil))
-const Nothing = Type`Nothing`(isNil)
 
-const Maybe = Union`Maybe`({ Just, Nothing }, {
-  map: ctx => mapFunction => Maybe(ctx.case({
+const Maybe = Union`Maybe`({
+  Just   : complement(isNil),
+  Nothing: isNil,
+}, {
+  map: (ctx, Ctx) => mapFunction => Ctx(ctx.case({
     Just   : mapFunction,
     Nothing: id
   })),
@@ -20,14 +21,18 @@ const Maybe = Union`Maybe`({ Just, Nothing }, {
     Just   : chainFunction,
     Nothing: () => ctx
   }),
-  filter: ctx => filterPredicate => ctx.chain(
-    data => filterPredicate(data)
-      ? Maybe(data)
-      : Maybe()
+  filter: (ctx, Ctx) => filterPredicate => ctx.chain(
+    data => {
+      const res = filterPredicate(data)
+      const ret = res == null
+        ? Ctx(null)
+        : Ctx(data)
+      return ret
+    }
   ),
   reject: ctx => rejectPredicate => ctx.chain(
     data => rejectPredicate(data)
-      ? Maybe()
+      ? Maybe(null)
       : Maybe(data)
   ),
 })

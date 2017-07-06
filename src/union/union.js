@@ -16,6 +16,7 @@ import { typeMark } from '../config'
 import { isMezzanine } from '../type/fixtures'
 import { addProperties } from '../utils/props'
 import { type TypeRecord } from '../type/type-container'
+import { createBuilder, createPred, transformInput } from '../type/descriptor'
 import { curry2 } from '../utils/fp'
 import { append } from '../utils/list'
 
@@ -118,7 +119,7 @@ function caseSelector(
     _ = defaultCase,
     ...realCases
   } = cases
-  const diff = difference(Object.keys(realCases), union.keys)
+  const diff = difference(Object.keys(realCases), union.types)
   if (!isEmpty(diff))
     unrelevantCaseError(union, diff, subtype)
   if (isMezzanine(subtype) && (subtype.ಠ_ಠ === uniqMark)) {
@@ -155,12 +156,12 @@ const caseFactory = (union: UnionStatic, subtypesMap: *, uniqMark: Symbol) =>
  * @example
  * Union`User`({ Account: String, Guest: {} })
  */
-function Union([typeName]: string[]) {
-  return function UnionFabric(
+const Union = ([typeName]: string[]) => {
+  return (
     desc: {[name: string]: *},
     funcBlob: FieldMap = {},
     stack: Array<(val: mixed) => mixed> = []
-  ) {
+  ) => {
     const canMatch = isOrthogonal(desc)
 
     const uniqMark = Symbol(typeName)
@@ -208,7 +209,7 @@ function Union([typeName]: string[]) {
         enumerable: false,
       },
       case: {
-        value     : curry2(caseWith),
+        value     : caseWith,
         enumerable: false,
       },
       stack: {
@@ -256,9 +257,7 @@ function Union([typeName]: string[]) {
       if (new.target !== UnionClass)
         return new UnionClass(obj)
       const arg = applyStack(stack, obj)
-      const data = arg && arg.value
-        ? arg.value
-        : arg
+      const data = transformInput(obj, true)
       let matched = false
       for (const [key, pattern] of iterator()) {
         if (pattern.is(data)) {
